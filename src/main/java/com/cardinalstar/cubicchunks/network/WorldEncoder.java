@@ -111,7 +111,8 @@ class WorldEncoder {
 
         ExtendedBlockStorage storage = cube.getStorage();
 
-        boolean empty = storage == null || cube.isEmpty();
+        // All-air storage can still contain block light or sideways skylight.
+        boolean empty = storage == null;
 
         byte flags = 0;
         if (empty) flags |= 0b1;

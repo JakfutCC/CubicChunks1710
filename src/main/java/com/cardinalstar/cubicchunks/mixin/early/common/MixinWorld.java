@@ -36,6 +36,7 @@ import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
@@ -86,6 +87,7 @@ import com.cardinalstar.cubicchunks.util.ReflectionUtil;
 import com.cardinalstar.cubicchunks.world.CubicChunksSavedData;
 import com.cardinalstar.cubicchunks.world.ICubicWorld;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
+import com.cardinalstar.cubicchunks.world.cube.ICubeProvider;
 import com.cardinalstar.cubicchunks.world.cube.ICubeProviderInternal;
 import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.gtnhlib.blockpos.BlockPos;
@@ -313,7 +315,8 @@ public abstract class MixinWorld implements ICubicWorldInternal {
         // Set the world height boundaries to their highest and lowest values respectively
         this.minHeight = heightRange.getMin();
         this.maxHeight = heightRange.getMax();
-        this.fakedMaxHeight = this.maxHeight;
+        // Outside temporary generation overrides, getHeight follows the physical bounds.
+        this.fakedMaxHeight = 0;
 
         this.minGenerationHeight = generationRange.getMin();
         this.maxGenerationHeight = generationRange.getMax();
@@ -451,7 +454,7 @@ public abstract class MixinWorld implements ICubicWorldInternal {
         if (fakedMaxHeight != 0) {
             return fakedMaxHeight;
         }
-        return this.provider.getHeight();
+        return this.maxHeight;
     }
 
     @Override
@@ -540,12 +543,21 @@ public abstract class MixinWorld implements ICubicWorldInternal {
 
     @ModifyConstant(method = "getCollidingBoundingBoxes", constant = @Constant(intValue = 64), require = 1)
     private int collidingBoxFix1(int constant, @Local(argsOnly = true) AxisAlignedBB box) {
-        return (int) ((box.maxY - box.minY) / 2 + box.minY);
+        return cubicChunks$collisionProbeY(box);
     }
 
     @ModifyConstant(method = "func_147461_a", constant = @Constant(intValue = 64), require = 1)
     private int collidingBoxFix2(int constant, @Local(argsOnly = true) AxisAlignedBB box) {
-        return (int) ((box.maxY - box.minY) / 2 + box.minY);
+        return cubicChunks$collisionProbeY(box);
+    }
+
+    private int cubicChunks$collisionProbeY(AxisAlignedBB box) {
+        // Probe an in-world row even when the box straddles a physical boundary. Floor rather
+        // than truncate: a negative fractional midpoint may otherwise select the next cube.
+        double middle = (box.maxY - box.minY) / 2 + box.minY;
+        // Do not turn an unrepresentable probe into an in-world scan of billions of rows.
+        if (!(middle >= Integer.MIN_VALUE && middle < Integer.MAX_VALUE)) return getMaxHeight();
+        return (int) Math.floor(Math.max(getMinHeight(), Math.min((double) getMaxHeight() - 1, middle)));
     }
 
     private static final List<Class<?>> allowedServerWorldClasses = ImmutableList.copyOf(
@@ -564,6 +576,24 @@ public abstract class MixinWorld implements ICubicWorldInternal {
 
     private boolean shouldSkipWorld(World world) {
         return !allowedServerWorldClasses.contains(world.getClass());
+    }
+
+    @WrapOperation(
+        method = "func_147467_a",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/chunk/Chunk;getBlock(III)Lnet/minecraft/block/Block;"),
+        require = 1)
+    private Block getLoadedBlockForCaveAmbience(Chunk chunk, int x, int y, int z, Operation<Block> original) {
+        if (this.chunkProvider instanceof ICubeProvider
+            && ((ICubeProvider) this.chunkProvider).getLoadedCube(chunk.xPosition, blockToCube(y), chunk.zPosition)
+                == null) {
+            // A non-air result skips this sound candidate without loading terrain. Do not cancel the whole
+            // method: the lighting work after the ambience check must still run.
+            return Blocks.stone;
+        }
+
+        return original.call(chunk, x, y, z);
     }
 
     @WrapOperation(

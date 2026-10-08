@@ -6,6 +6,7 @@ import net.minecraft.network.Packet;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.ChunkWatchEvent;
 
@@ -130,6 +131,13 @@ public class WorldSyncStateMachine {
                 Cube cube = provider.getLoadedCube(e.getX(), e.getY(), e.getZ());
 
                 if (cube != null) {
+                    // Match Forge's bulk-update threshold, without its vanilla section-height mask.
+                    if (e.getValue()
+                        .size() >= ForgeModContainer.clumpingThreshold) {
+                        sendCubeData(cube);
+                        continue;
+                    }
+
                     PacketEncoderCubeBlockChange.createPacket(cube, e.getValue())
                         .sendToPlayer(player.player);
 

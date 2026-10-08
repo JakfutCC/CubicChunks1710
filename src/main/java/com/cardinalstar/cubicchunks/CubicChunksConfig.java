@@ -29,6 +29,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import net.minecraft.block.Block;
 
+import com.cardinalstar.cubicchunks.server.chunkio.CCNBTUtils.TagCompression;
 import com.cardinalstar.cubicchunks.worldgen.FillerInfo;
 import com.cardinalstar.cubicchunks.worldgen.HeightInfo;
 import com.gtnewhorizon.gtnhlib.config.Config;
@@ -98,7 +99,7 @@ public class CubicChunksConfig {
 
     @Config.LangKey("cubicchunks.config.storage_format")
     @Config.Comment("The storage format. Note: this will be used for all newly created worlds. Existing worlds will continue to use the format they were created with.\n"
-        + "If empty, the storage format for new worlds will be determined automatically.")
+        + "If empty, new worlds use compact-empty Anvil3D storage.")
     public static String storageFormat = "";
 
     @Config.LangKey("cubicchunks.config.spawn_generate_distance_horizontal")
@@ -138,9 +139,24 @@ public class CubicChunksConfig {
     @Config.RequiresWorldRestart
     public static boolean useShadowPagingIO = true;
 
+    @Config.LangKey("cubicchunks.config.compact_regions_on_world_load")
+    @Config.Comment("Enabled by default. Reclaim unused space in Anvil3D region files only during server/world startup. "
+        + "Includes existing DIM<number> and DIM_SPACESTATION<number> folders without loading their chunks, "
+        + "plus custom paths opened during startup. "
+        + "Only files that can shrink are replaced; cube data and compression are unchanged. "
+        + "Large fragmented saves may take longer to start. Gameplay dimension loads and reloads never compact.")
+    @Config.RequiresWorldRestart
+    public static boolean compactRegionsOnWorldLoad = true;
+
     @Config.LangKey("cubicchunks.config.disable_lighting")
     @Config.Comment("Disables all light propagation")
     public static boolean disableLighting = false;
+
+    @Config.LangKey("cubicchunks.config.chunk_compression")
+    @Config.Comment("Compression for newly saved chunks and cubes: ZSTD (default, level 1), GZIP, LZ4, or NONE. "
+        + "Existing records remain readable regardless of this setting. Older CC versions may not read these codecs; "
+        + "switching back only changes future writes, not existing records.")
+    public static TagCompression chunkCompression = TagCompression.ZSTD;
 
     @Config.Ignore
     public static int defaultMaxCubesPerChunkloadingTicket = 25 * 16;

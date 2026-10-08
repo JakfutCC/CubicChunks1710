@@ -27,6 +27,7 @@ import net.minecraft.world.World;
 import com.cardinalstar.cubicchunks.CubicChunks;
 import com.cardinalstar.cubicchunks.client.CubeProviderClient;
 import com.cardinalstar.cubicchunks.network.PacketEncoderCube.PacketCube;
+import com.cardinalstar.cubicchunks.util.Coords;
 import com.cardinalstar.cubicchunks.util.CubePos;
 import com.cardinalstar.cubicchunks.util.CubeStatusVisualizer;
 import com.cardinalstar.cubicchunks.util.CubeStatusVisualizer.CubeStatus;
@@ -103,7 +104,28 @@ public class PacketEncoderCube extends CCPacketEncoder<PacketCube> {
 
         if (!cube.isCubeLoaded()) {
             cube.onCubeLoad();
+        } else {
+            relightCubeNeighbors(world, cube);
         }
         cube.markForRenderUpdate();
+    }
+
+    private static void relightCubeNeighbors(World world, Cube cube) {
+        int x = Coords.cubeToMinBlock(cube.getX());
+        int y = Coords.cubeToMinBlock(cube.getY());
+        int z = Coords.cubeToMinBlock(cube.getZ());
+
+        // The snapshot already contains this cube's light. Neighbors without block
+        // changes receive no packet, so propagate from the outside of each face.
+        for (int a = 0; a < Cube.SIZE; a++) {
+            for (int b = 0; b < Cube.SIZE; b++) {
+                world.func_147451_t(x - 1, y + a, z + b);
+                world.func_147451_t(x + Cube.SIZE, y + a, z + b);
+                world.func_147451_t(x + a, y - 1, z + b);
+                world.func_147451_t(x + a, y + Cube.SIZE, z + b);
+                world.func_147451_t(x + a, y + b, z - 1);
+                world.func_147451_t(x + a, y + b, z + Cube.SIZE);
+            }
+        }
     }
 }

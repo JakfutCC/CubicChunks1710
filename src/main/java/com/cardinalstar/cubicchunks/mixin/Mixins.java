@@ -8,10 +8,19 @@ import com.gtnewhorizon.gtnhmixins.builders.MixinBuilder;
 
 public enum Mixins implements IMixins {
 
+    ACCESSOR_NBT(new MixinBuilder("Add accessors for NBT tag internals.")
+        .addCommonMixins("common.AccessorNBTTagList", "common.AccessorNBTTagCompound")
+        .setPhase(Phase.EARLY)
+        .setApplyIf(() -> true)),
+
     // =============================================================
     // COMMON Mixins
     // =============================================================
     // MISC
+    MIXIN_ENTITY_ENDERMAN(new MixinBuilder("Bound Enderman teleport searches in loaded cubic terrain.")
+        .addCommonMixins("common.MixinEntityEnderman")
+        .setPhase(Phase.EARLY)
+        .setApplyIf(() -> true)),
     MIXIN_ANVIL_SAVE_HANDLER(new MixinBuilder("Changing the save handler to return a Cubic anvil chunk loader.")
         .addCommonMixins("common.MixinAnvilSaveHandler")
         .setPhase(Phase.EARLY)
@@ -237,6 +246,10 @@ public enum Mixins implements IMixins {
     // =============================================================
     // Client Mixins
     // =============================================================
+    MIXIN_COMPACTION_PROGRESS(new MixinBuilder("Show region compaction progress while loading a world")
+        .addClientMixins("client.MixinLoadingScreenRenderer")
+        .setPhase(Phase.EARLY)
+        .setApplyIf(() -> true)),
     MIXIN_I_CHUNK_PROVIDER_CLIENT(new MixinBuilder("Implements IChunkProviderClient on ChunkProviderClient")
         .addClientMixins("client.IChunkProviderClient")
         .setPhase(Phase.EARLY)
