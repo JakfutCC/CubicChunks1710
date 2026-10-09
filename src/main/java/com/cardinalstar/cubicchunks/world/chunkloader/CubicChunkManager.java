@@ -20,6 +20,7 @@
  */
 package com.cardinalstar.cubicchunks.world.chunkloader;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,7 +38,6 @@ import net.minecraftforge.common.util.Constants;
 import com.cardinalstar.cubicchunks.CubicChunksConfig;
 import com.cardinalstar.cubicchunks.mixin.early.common.forge.IForgeChunkManager;
 import com.cardinalstar.cubicchunks.util.CubePos;
-import com.cardinalstar.cubicchunks.util.ITicket;
 import com.cardinalstar.cubicchunks.world.ICubicWorld;
 import com.cardinalstar.cubicchunks.world.core.ICubicTicketInternal;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
@@ -140,9 +140,24 @@ public class CubicChunkManager {
         }
         ((ICubicTicketInternal) ticket).removeRequestedCube(chunk);
         MinecraftForge.EVENT_BUS.post(new UnforceCubeEvent(ticket, chunk));
-        Cube cube = (Cube) ((ICubicWorld) ticket.world).getCubeFromCubeCoords(chunk);
-        cube.getTickets()
+        Cube cube = (Cube) ((ICubicWorld) ticket.world).getCubeCache()
+            .getLoadedCube(chunk);
+        if (cube != null) cube.getTickets()
             .remove((ICubicTicketInternal) ticket);
+    }
+
+    public static void releaseCubes(ForgeChunkManager.Ticket ticket) {
+        if (ticket == null || !(ticket.world instanceof ICubicWorld)) return;
+        ICubicTicketInternal cubic = (ICubicTicketInternal) ticket;
+        // Snapshot before unforce removes entries. Deserialized coordinates may not be loaded yet.
+        for (var entry : new ArrayList<>(
+            cubic.getAllForcedChunkCubes()
+                .entrySet())) {
+            for (int y : entry.getValue()
+                .toIntArray()) {
+                unforceChunk(ticket, new CubePos(entry.getKey().chunkXPos, y, entry.getKey().chunkZPos));
+            }
+        }
     }
 
     // internals
@@ -256,11 +271,8 @@ public class CubicChunkManager {
         if (forcedCubes == null) {
             return;
         }
-        for (int cubeY : forcedCubes) {
-            Cube cube = (Cube) ((ICubicWorld) world)
-                .getCubeFromCubeCoords(event.location.chunkXPos, cubeY, event.location.chunkZPos);
-            cube.getTickets()
-                .remove((ITicket) ticket);
+        for (int cubeY : forcedCubes.toIntArray()) {
+            unforceChunk(ticket, new CubePos(event.location.chunkXPos, cubeY, event.location.chunkZPos));
         }
         ((ICubicTicketInternal) ticket).clearForcedChunkCubes(event.location);
     }
