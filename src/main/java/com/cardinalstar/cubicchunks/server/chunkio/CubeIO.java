@@ -1,11 +1,13 @@
 package com.cardinalstar.cubicchunks.server.chunkio;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import net.minecraft.nbt.NBTTagCompound;
@@ -39,6 +41,7 @@ public class CubeIO implements ICubeIO {
         .toMillis();
 
     private final ICubicStorage storage;
+    private volatile IOException saveFailure;
     private final IPreloadFailureDelegate preloadFailures;
     private final ITaskExecutor<ChunkCoordIntPair, Optional<NBTTagCompound>> columnLoadExecutor;
     private final ITaskExecutor<CubePos, Optional<NBTTagCompound>> cubeLoadExecutor;
@@ -50,6 +53,8 @@ public class CubeIO implements ICubeIO {
 
     interface Savable {
     }
+
+    private static final Savable RETRY_SAVES = new Savable() {};
 
     @Desugar
     private record SaveColumn(ChunkCoordIntPair pos, NBTTagCompound tag) implements Savable {}
@@ -108,39 +113,116 @@ public class CubeIO implements ICubeIO {
 
         saveExecutor = new ITaskExecutor<>() {
 
+            // Only failed records are retained. Ordinary saves never rewrite an unrelated failed backlog.
+            private final Map<ChunkCoordIntPair, NBTTagCompound> failedColumns = new Object2ObjectOpenHashMap<>();
+            private final Map<CubePos, NBTTagCompound> failedCubes = new Object2ObjectOpenHashMap<>();
+
+            @Override
+            public boolean requiresSerialExecution() {
+                return true;
+            }
+
+            private void savedColumn(ChunkCoordIntPair pos, NBTTagCompound tag) {
+                failedColumns.remove(pos);
+                synchronized (columnCache) {
+                    SaveData cached = columnCache.get(pos);
+                    if (cached != null && cached.tag == tag) cached.task = null;
+                }
+            }
+
+            private void savedCube(CubePos pos, NBTTagCompound tag) {
+                failedCubes.remove(pos);
+                synchronized (cubeCache) {
+                    SaveData cached = cubeCache.get(pos);
+                    if (cached != null && cached.tag == tag) cached.task = null;
+                }
+            }
+
+            private void writeRecords(Map<ChunkCoordIntPair, NBTTagCompound> columns,
+                Map<CubePos, NBTTagCompound> cubes, boolean logFailure) {
+                int count = columns.size() + cubes.size();
+                if (count == 0) return;
+                try {
+                    storage.writeBatch(new ICubicStorage.NBTBatch(columns, cubes));
+                    columns.forEach(this::savedColumn);
+                    cubes.forEach(this::savedCube);
+                } catch (IOException | RuntimeException e) {
+                    if (logFailure)
+                        CubicChunks.LOGGER.error("Could not save columns or cubes; isolating failed records", e);
+                    if (count == 1) {
+                        failedColumns.putAll(columns);
+                        failedCubes.putAll(cubes);
+                        saveFailure = new IOException("Could not save a cube or column", e);
+                        return;
+                    }
+                    // Preserve batching for healthy regions rather than forcing each record separately.
+                    Map<ChunkCoordIntPair, NBTTagCompound> firstColumns = new Object2ObjectOpenHashMap<>();
+                    Map<ChunkCoordIntPair, NBTTagCompound> lastColumns = new Object2ObjectOpenHashMap<>();
+                    Map<CubePos, NBTTagCompound> firstCubes = new Object2ObjectOpenHashMap<>();
+                    Map<CubePos, NBTTagCompound> lastCubes = new Object2ObjectOpenHashMap<>();
+                    int index = 0;
+                    for (var entry : columns.entrySet()) {
+                        (index++ < count / 2 ? firstColumns : lastColumns).put(entry.getKey(), entry.getValue());
+                    }
+                    for (var entry : cubes.entrySet()) {
+                        (index++ < count / 2 ? firstCubes : lastCubes).put(entry.getKey(), entry.getValue());
+                    }
+                    writeRecords(firstColumns, firstCubes, false);
+                    writeRecords(lastColumns, lastCubes, false);
+                }
+            }
+
             @Override
             public void execute(List<ITaskFuture<Savable, Void>> tasks) {
                 Map<ChunkCoordIntPair, NBTTagCompound> columns = new Object2ObjectOpenHashMap<>();
                 Map<CubePos, NBTTagCompound> cubes = new Object2ObjectOpenHashMap<>();
-
+                boolean retry = false;
                 for (ITaskFuture<Savable, Void> task : tasks) {
                     Savable savable = task.getTask();
-
-                    if (savable instanceof SaveColumn column) {
-                        columns.put(column.pos, column.tag);
-                    }
-
-                    if (savable instanceof SaveCube cube) {
-                        cubes.put(cube.pos, cube.tag);
-                    }
+                    if (savable instanceof SaveColumn column) columns.put(column.pos, column.tag);
+                    if (savable instanceof SaveCube cube) cubes.put(cube.pos, cube.tag);
+                    if (savable == RETRY_SAVES) retry = true;
                 }
-
-                IOException ex = null;
-
+                Error fatal = null;
                 try {
-                    storage.writeBatch(new ICubicStorage.NBTBatch(columns, cubes));
-                } catch (IOException e) {
-                    CubicChunks.LOGGER.error("Could not save columns or cubes", e);
-                    ex = e;
+                    writeRecords(columns, cubes, true);
+                    if (retry) {
+                        // Only explicit flush retries an unrelated backlog, retaining batching where possible.
+                        writeRecords(
+                            new Object2ObjectOpenHashMap<>(failedColumns),
+                            new Object2ObjectOpenHashMap<>(failedCubes),
+                            true);
+                    }
+                } catch (Error e) {
+                    failedColumns.putAll(columns);
+                    failedCubes.putAll(cubes);
+                    saveFailure = new IOException("Fatal error while saving columns or cubes", e);
+                    fatal = e;
                 }
-
-                for (ITaskFuture<Savable, Void> task : tasks) {
-                    if (ex != null) {
-                        task.fail(ex);
-                    } else {
-                        task.finish(null);
+                if (failedColumns.isEmpty() && failedCubes.isEmpty()) saveFailure = null;
+                IOException flushFailure = null;
+                if (retry) {
+                    try {
+                        // Force healthy records even if another record failed. Keep live region I/O on this
+                        // worker: cancelling a backup must only interrupt its waiter, never a shared FileChannel.
+                        storage.flush();
+                    } catch (IOException | RuntimeException e) {
+                        flushFailure = new IOException("Could not flush cube storage", e);
+                    } catch (Error e) {
+                        flushFailure = new IOException("Fatal error while flushing cube storage", e);
+                        fatal = e;
                     }
                 }
+                for (ITaskFuture<Savable, Void> task : tasks) {
+                    Savable savable = task.getTask();
+                    boolean failed = (savable instanceof SaveColumn column && failedColumns.containsKey(column.pos))
+                        || (savable instanceof SaveCube cube && failedCubes.containsKey(cube.pos))
+                        || (savable == RETRY_SAVES && saveFailure != null);
+                    if (failed) task.fail(saveFailure);
+                    else if (savable == RETRY_SAVES && flushFailure != null) task.fail(flushFailure);
+                    else task.finish(null);
+                }
+                if (fatal != null) throw fatal;
             }
 
             @Override
@@ -266,26 +348,7 @@ public class CubeIO implements ICubeIO {
         synchronized (columnCache) {
             columnCache.put(pos, new SaveData(tag, task, now));
 
-            if (columnCache.size() > 5000) {
-                int i = 0;
-
-                var iter = columnCache.object2ObjectEntrySet()
-                    .fastIterator();
-
-                while (columnCache.size() > 5000 && i++ < 100) {
-                    var e = iter.next();
-
-                    SaveData data = e.getValue();
-
-                    if (data.task != null && data.task.isDone()) {
-                        data.task = null;
-                    }
-
-                    if (data.task == null && data.lastAccess + EXPIRY < now) {
-                        iter.remove();
-                    }
-                }
-            }
+            trimCache(columnCache, 5000, now);
         }
     }
 
@@ -303,64 +366,61 @@ public class CubeIO implements ICubeIO {
         synchronized (cubeCache) {
             cubeCache.put(pos, new SaveData(tag, task, now));
 
-            if (cubeCache.size() > 30000) {
-                int i = 0;
-
-                var iter = cubeCache.object2ObjectEntrySet()
-                    .fastIterator();
-
-                while (cubeCache.size() > 30000 && i++ < 100) {
-                    var e = iter.next();
-
-                    SaveData data = e.getValue();
-
-                    if (data.task != null && data.task.isDone()) {
-                        data.task = null;
-                    }
-
-                    if (data.task == null && data.lastAccess + EXPIRY < now) {
-                        iter.remove();
-                    }
-                }
-            }
+            trimCache(cubeCache, 30000, now);
         }
     }
 
-    // only used by "/save-all flush" command
+    private static <K> void trimCache(Object2ObjectLinkedOpenHashMap<K, SaveData> cache, int limit, long now) {
+        // Rotate examined entries so failed or recently reused records cannot pin every healthy entry behind them.
+        for (int checked = 0; cache.size() > limit && checked < 100; checked++) {
+            K key = cache.firstKey();
+            SaveData data = cache.getAndMoveToLast(key);
+            if (data.task != null && completedSuccessfully(data.task)) data.task = null;
+            if (data.task == null && data.lastAccess + EXPIRY < now) cache.remove(key);
+        }
+    }
+
+    private static boolean completedSuccessfully(Future<?> task) {
+        if (!task.isDone() || task.isCancelled()) return false;
+        try {
+            task.get();
+            return true;
+        } catch (ExecutionException e) {
+            // Keep unsaved NBT available for a reload until a later save replaces this cache entry.
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread()
+                .interrupt();
+            return false;
+        }
+    }
+
     @Override
     public void flush() throws IOException {
-        TaskPool.flush();
-
-        this.storage.flush();
+        // A serial marker drains this dimension's prior writes, without waiting for ongoing gameplay preloads.
+        Future<?> barrier = TaskPool.submit(saveExecutor, RETRY_SAVES);
+        try {
+            barrier.get();
+        } catch (ExecutionException e) {
+            throw new IOException("A previous cube or column write or storage flush failed", e.getCause());
+        } catch (InterruptedException e) {
+            Thread.currentThread()
+                .interrupt();
+            InterruptedIOException interrupted = new InterruptedIOException("Interrupted while flushing cube saves");
+            interrupted.initCause(e);
+            throw interrupted;
+        }
     }
 
     @Override
     public void close() throws IOException {
+        // World unload runs on the server thread: finish outstanding reads before closing their storage too.
         TaskPool.flush();
-
-        while (true) {
-            synchronized (columnCache) {
-                if (columnCache.isEmpty()) break;
-
-                columnCache.object2ObjectEntrySet()
-                    .removeIf(e -> e.getValue().task == null || e.getValue().task.isDone());
-            }
-
-            Thread.yield();
+        try {
+            flush();
+        } finally {
+            this.storage.close();
         }
-
-        while (true) {
-            synchronized (cubeCache) {
-                if (cubeCache.isEmpty()) break;
-
-                cubeCache.object2ObjectEntrySet()
-                    .removeIf(e -> e.getValue().task == null || e.getValue().task.isDone());
-            }
-
-            Thread.yield();
-        }
-
-        this.storage.close();
     }
 
     @Override

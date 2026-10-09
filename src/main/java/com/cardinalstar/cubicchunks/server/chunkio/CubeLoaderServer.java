@@ -291,6 +291,9 @@ public class CubeLoaderServer implements ICubeLoader {
 
     @Override
     public void unloadCube(int x, int y, int z) {
+        // Match vanilla save-off: retain dirty cubes/columns in memory until saving resumes.
+        if (world.levelSaving) return;
+
         CubeInfo info = cubes.remove(x, y, z);
 
         if (info != null) {
@@ -306,6 +309,9 @@ public class CubeLoaderServer implements ICubeLoader {
 
     @Override
     public void save(boolean saveAll) {
+        // Match vanilla save-off: retain dirty cubes/columns in memory until saving resumes.
+        if (world.levelSaving) return;
+
         boolean processedLighting = false;
 
         for (CubeInfo cube : cubes) {
@@ -331,6 +337,9 @@ public class CubeLoaderServer implements ICubeLoader {
 
     @Override
     public void saveColumn(Chunk column) {
+        // Match vanilla save-off: retain dirty cubes/columns in memory until saving resumes.
+        if (world.levelSaving) return;
+
         if (column == null) return;
 
         ColumnInfo columnInfo = columns.get(column.xPosition, column.zPosition);
@@ -350,6 +359,9 @@ public class CubeLoaderServer implements ICubeLoader {
 
     @Override
     public void saveCube(Cube cube) {
+        // Match vanilla save-off: retain dirty cubes/columns in memory until saving resumes.
+        if (world.levelSaving) return;
+
         if (cube == null || cube instanceof BlankCube) return;
 
         CubeInfo cubeInfo = cubes.get(cube.getX(), cube.getY(), cube.getZ());
@@ -371,6 +383,9 @@ public class CubeLoaderServer implements ICubeLoader {
 
     @Override
     public void doGC() {
+        // Match vanilla save-off: retain dirty cubes/columns in memory until saving resumes.
+        if (world.levelSaving) return;
+
         var persistentChunks = ForgeChunkManager.getPersistentChunksFor(world);
         CubicPlayerManager playerManager = (CubicPlayerManager) world.getPlayerManager();
 
@@ -573,7 +588,7 @@ public class CubeLoaderServer implements ICubeLoader {
 
             onColumnLoaded();
 
-            cubeIO.saveColumn(pos, column);
+            if (!world.levelSaving) cubeIO.saveColumn(pos, column);
 
             handleSideEffects(result, true, true);
 

@@ -281,6 +281,16 @@ public class CubeProviderServer extends ChunkProviderServer
         return provideColumn(cubeX, cubeZ);
     }
 
+    /**
+     * Backup capability: save-off also retains dirty cubes and stops generation/unload writes.
+     * Save and set levelSaving on the server thread first. A backup worker may then flush and copy storage.
+     * Keep saving disabled until the copy completes. Older CC builds do not expose this contract.
+     */
+    public void flushForBackup() throws IOException {
+        if (!worldServer.levelSaving) throw new IllegalStateException("World saving must be disabled for backup");
+        cubeLoader.flush();
+    }
+
     @Override
     public boolean saveChunks(boolean ignored, IProgressUpdate progressUpdater) {
         cubeLoader.save(true);
