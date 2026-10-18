@@ -75,7 +75,8 @@ public class IONbtReader {
         if (!Mods.ChunkAPI.isModLoaded()) {
             readBiomes(level, column);
         } else {
-            DataRegistryImpl.readChunkFromNBT(column, nbt);
+            // Converter v2 columns moved ChunkAPI data from the root into Level.
+            DataRegistryImpl.readChunkFromNBT(column, level.getByte("v") == 1 ? nbt : level);
         }
 
         readOpacityIndex(level, column);
@@ -89,7 +90,7 @@ public class IONbtReader {
     @Nullable
     private static Chunk readBaseColumn(World world, int x, int z, NBTTagCompound nbt) {// check the version number
         byte version = nbt.getByte("v");
-        if (version != 1) {
+        if (version != 1 && version != 2) {
             throw new IllegalArgumentException(String.format("Column has wrong version: %d", version));
         }
 
