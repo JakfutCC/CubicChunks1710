@@ -120,6 +120,10 @@ public class IONbtReader {
     private static void readOpacityIndex(NBTTagCompound nbt, Chunk chunk) {
         IHeightMap hmap = ((IColumn) chunk).getOpacityIndex();
         HeightMap3D heightMap3D = (HeightMap3D) hmap;
+        // Converted columns may omit the vanilla array. Rebuild its projection from HeightMap3D below.
+        if (chunk.heightMap.length != Cube.SIZE * Cube.SIZE) {
+            chunk.heightMap = new int[Cube.SIZE * Cube.SIZE];
+        }
         heightMap3D.setVanillaHeightMap(chunk.heightMap);
 
         if (nbt.hasKey("HeightMap3D", NBT.TAG_BYTE_ARRAY)) {
