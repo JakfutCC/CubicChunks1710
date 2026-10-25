@@ -187,10 +187,13 @@ public class CubicPlayerManager extends PlayerManager implements CubeLoaderCallb
 
         // Collect cubes once per second, with every watch set current (see above), instead of on every cube crossing
         // of every player. This also covers players standing still (e.g. LOD generators) and the last logout.
+        // Expired cubes are unloaded evenly over the following ticks.
         if (now % 20 == 0) {
             provider.getCubeLoader()
-                .doGC();
+                .scheduleGC();
         }
+        provider.getCubeLoader()
+            .unloadExpiredCubes(20 - (int) (now % 20));
 
         // unloading cubes saves them, which fills CubeIO's caches, so trim them regularly
         if (now - this.lastCacheTrim >= 20 * 30) {

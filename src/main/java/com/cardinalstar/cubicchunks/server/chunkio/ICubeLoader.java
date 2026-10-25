@@ -54,7 +54,14 @@ public interface ICubeLoader extends Flushable, Closeable {
 
     void saveCube(Cube cube);
 
+    /// Unloads every expired cube and empty column now.
     void doGC();
+
+    /// Finds the expired cubes and unloads empty columns, leaving the cubes to {@link #unloadExpiredCubes(int)}.
+    void scheduleGC();
+
+    /// Unloads a share of the cubes the last {@link #scheduleGC()} found expired, spread over the ticks until the next.
+    void unloadExpiredCubes(int ticksUntilNextGC);
 
     void trimCaches();
 

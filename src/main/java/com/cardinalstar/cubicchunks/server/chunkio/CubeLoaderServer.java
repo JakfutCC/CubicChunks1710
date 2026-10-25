@@ -3,6 +3,7 @@ package com.cardinalstar.cubicchunks.server.chunkio;
 import static net.minecraftforge.common.MinecraftForge.EVENT_BUS;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -41,6 +42,7 @@ import com.cardinalstar.cubicchunks.world.core.IColumnInternal;
 import com.cardinalstar.cubicchunks.world.cube.BlankCube;
 import com.cardinalstar.cubicchunks.world.cube.BoundaryCube;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
+import com.google.common.collect.ImmutableSetMultimap;
 
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -378,13 +380,36 @@ public class CubeLoaderServer implements ICubeLoader {
     }
 
     private static final int CUBE_GC_EXPIRY = 20 * 5;
+    /// At most this many expired cubes are unloaded per tick by {@link #unloadExpiredCubes(int)}.
+    private static final int MAX_CUBE_UNLOADS_PER_TICK = 256;
 
+    /// Cubes the last {@link #scheduleGC()} found expired, waiting for {@link #unloadExpiredCubes(int)}.
+    private final ArrayDeque<CubePos> expiredCubes = new ArrayDeque<>();
+
+    /// Unloads every expired cube and empty column now.
     @Override
     public void doGC() {
+        collectGarbage(true);
+    }
+
+    /// Like {@link #doGC()}, but leaves the expired cubes to {@link #unloadExpiredCubes(int)}, so that a large batch
+    /// (for example everything a player had loaded, after a logout) is spread over several ticks.
+    @Override
+    public void scheduleGC() {
+        collectGarbage(false);
+    }
+
+    /// Unloads an even share of the cubes the last {@link #scheduleGC()} found expired, so that they are done by the
+    /// next one, but at most {@link #MAX_CUBE_UNLOADS_PER_TICK}. Cubes still waiting then are found again.
+    @Override
+    public void unloadExpiredCubes(int ticksUntilNextGC) {
+        int share = (expiredCubes.size() + ticksUntilNextGC - 1) / Math.max(1, ticksUntilNextGC);
+        unloadExpired(Math.min(share, MAX_CUBE_UNLOADS_PER_TICK));
+    }
+
+    private void collectGarbage(boolean unloadNow) {
         var persistentChunks = ForgeChunkManager.getPersistentChunksFor(world);
         CubicPlayerManager playerManager = (CubicPlayerManager) world.getPlayerManager();
-
-        List<CubePos> pendingCubeUnloads = new ArrayList<>();
 
         int startCubes = cubes.getSize();
         int startCols = columns.getSize();
@@ -393,26 +418,17 @@ public class CubeLoaderServer implements ICubeLoader {
 
         final long expiry = now - CUBE_GC_EXPIRY;
 
+        // the scan finds again whatever an earlier one left waiting
+        expiredCubes.clear();
         for (CubeInfo cubeInfo : cubes) {
-            Cube cube = cubeInfo.cube;
-
-            if (cube == null || cubeInfo.lastAccess > expiry) continue;
-
-            if (persistentChunks.containsKey(
-                cube.getColumn()
-                    .getChunkCoordIntPair()))
-                continue;
-
-            if (playerManager.isCubeWatched(cube.getX(), cube.getY(), cube.getZ())) continue;
-
-            if (cube.getTickets()
-                .canUnload()) {
-                pendingCubeUnloads.add(cubeInfo.pos);
+            if (canUnload(cubeInfo, persistentChunks, playerManager, expiry)) {
+                expiredCubes.add(cubeInfo.pos);
             }
         }
 
-        for (CubePos pos : pendingCubeUnloads) {
-            unloadCube(pos.getX(), pos.getY(), pos.getZ());
+        int expired = expiredCubes.size();
+        if (unloadNow) {
+            unloadExpired(Integer.MAX_VALUE);
         }
 
         int autoCols = columns.getSize();
@@ -451,10 +467,47 @@ public class CubeLoaderServer implements ICubeLoader {
             pendingColumnUnloads.size(),
             startCols,
             columns.getSize(),
-            pendingCubeUnloads.size(),
+            expired,
             startCubes,
             cubes.getSize(),
             startCols - autoCols);
+    }
+
+    /// Unloads up to {@code max} of the waiting expired cubes, checking each again: since the scan, a player may have
+    /// come back to it, or it may have gained a ticket or been unloaded already.
+    private void unloadExpired(int max) {
+        if (expiredCubes.isEmpty()) return;
+
+        var persistentChunks = ForgeChunkManager.getPersistentChunksFor(world);
+        CubicPlayerManager playerManager = (CubicPlayerManager) world.getPlayerManager();
+        final long expiry = now - CUBE_GC_EXPIRY;
+
+        for (int i = 0; i < max && !expiredCubes.isEmpty(); i++) {
+            CubePos pos = expiredCubes.poll();
+            CubeInfo cubeInfo = cubes.get(pos.getX(), pos.getY(), pos.getZ());
+
+            if (cubeInfo != null && canUnload(cubeInfo, persistentChunks, playerManager, expiry)) {
+                unloadCube(pos.getX(), pos.getY(), pos.getZ());
+            }
+        }
+    }
+
+    private static boolean canUnload(CubeInfo cubeInfo,
+        ImmutableSetMultimap<ChunkCoordIntPair, ForgeChunkManager.Ticket> persistentChunks,
+        CubicPlayerManager playerManager, long expiry) {
+        Cube cube = cubeInfo.cube;
+
+        if (cube == null || cubeInfo.lastAccess > expiry) return false;
+
+        if (persistentChunks.containsKey(
+            cube.getColumn()
+                .getChunkCoordIntPair()))
+            return false;
+
+        if (playerManager.isCubeWatched(cube.getX(), cube.getY(), cube.getZ())) return false;
+
+        return cube.getTickets()
+            .canUnload();
     }
 
     @Override
