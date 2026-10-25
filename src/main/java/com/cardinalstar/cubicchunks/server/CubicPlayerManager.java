@@ -82,7 +82,7 @@ public class CubicPlayerManager extends PlayerManager implements CubeLoaderCallb
     private int verticalViewDistance;
 
     private long lastChunkInhabitedUpdate;
-    private long lastCubeGc;
+    private long lastCacheTrim;
 
     // these player adds will be processed on the next tick
     // this exists as temporary workaround to player respawn code calling addPlayer() before spawning
@@ -137,6 +137,8 @@ public class CubicPlayerManager extends PlayerManager implements CubeLoaderCallb
         getWorldServer().theProfiler.endStartSection("Immediate nearby cube loading");
 
         for (var player : players.getPlayerArray()) {
+            // Refresh every watch set before collecting cubes, including players moved by teleports.
+            updatePlayerPertinentChunks(player.player);
             CubeProviderServer cubeCache = ((Server) getWorldServer()).getCubeCache();
 
             var pos = player.getManagedCubePos();
@@ -183,15 +185,17 @@ public class CubicPlayerManager extends PlayerManager implements CubeLoaderCallb
 
         getWorldServer().theProfiler.endStartSection("unload");
 
-        // updatePlayerPertinentChunks only runs the GC when a player moves into a new cube, so cubes loaded while
-        // players stand still (e.g. by LOD generators) would never be unloaded without this
-        if (now - this.lastCubeGc >= 20 * 30) {
-            this.lastCubeGc = now;
-
+        // Collect cubes once per second, with every watch set current (see above), instead of on every cube crossing
+        // of every player. This also covers players standing still (e.g. LOD generators) and the last logout.
+        if (now % 20 == 0) {
             provider.getCubeLoader()
                 .doGC();
+        }
 
-            // unloading cubes above saves them, which fills CubeIO's caches, so trim them afterwards
+        // unloading cubes saves them, which fills CubeIO's caches, so trim them regularly
+        if (now - this.lastCacheTrim >= 20 * 30) {
+            this.lastCacheTrim = now;
+
             provider.getCubeLoader()
                 .trimCaches();
         }
@@ -408,26 +412,6 @@ public class CubicPlayerManager extends PlayerManager implements CubeLoaderCallb
         applyWorldVisibilityChanges(watchingPlayer, delta);
 
         getWorldServer().theProfiler.endSection();// updateMovedPlayer
-
-        // With ChunkGc being separate from PlayerCubeMap, there are 2 issues:
-        // Problem 0: Sometimes, a chunk can be generated after CubeWatcher's chunk load callback returns with a null
-        // but before ChunkGC call. This means that the cube will get unloaded, even when ChunkWatcher is waiting for
-        // it.
-        // Problem 1: When chunkGc call is not in this method, sometimes, when a player teleports far away and is
-        // unlucky, and ChunkGc runs in the same tick the teleport appears to happen after PlayerCubeMap call, but
-        // before ChunkGc call. This means that PlayerCubeMap won't yet have a CubeWatcher for the player cubes at all,
-        // so even directly checking for CubeWatchers before unload attempt won't work.
-        //
-        // While normally not an issue as it will be reloaded soon anyway, it breaks a lot of things if that cube
-        // contains the player. Which is not unlikely if the player is what caused generating this cube in the first
-        // place
-        // for problem #0.
-        // So we put ChunkGc here so that we can be sure it has consistent data about player location, and that no
-        // chunks are
-        // loaded while we aren't looking.
-        ((ICubicWorldInternal.Server) getWorldServer()).getCubeCache()
-            .getCubeLoader()
-            .doGC();
     }
 
     private void onPlayerStartedViewingCube(WatchingPlayer player, int x, int y, int z) {
