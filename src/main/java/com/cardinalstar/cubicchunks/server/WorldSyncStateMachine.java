@@ -1,6 +1,7 @@
 package com.cardinalstar.cubicchunks.server;
 
 import java.util.Iterator;
+import java.util.function.IntBinaryOperator;
 
 import net.minecraft.network.Packet;
 import net.minecraft.tileentity.TileEntity;
@@ -9,12 +10,15 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.ChunkWatchEvent;
 
+import org.joml.Vector2ic;
+
 import com.cardinalstar.cubicchunks.CubicChunks;
 import com.cardinalstar.cubicchunks.api.XYZAddressable;
 import com.cardinalstar.cubicchunks.api.event.CubeEvent;
 import com.cardinalstar.cubicchunks.network.PacketEncoderColumn;
 import com.cardinalstar.cubicchunks.network.PacketEncoderCube;
 import com.cardinalstar.cubicchunks.network.PacketEncoderCubeBlockChange;
+import com.cardinalstar.cubicchunks.network.PacketEncoderCubeBlockChange.PacketCubeBlockChange;
 import com.cardinalstar.cubicchunks.network.PacketEncoderHeightMapUpdate;
 import com.cardinalstar.cubicchunks.network.PacketEncoderUnloadColumn;
 import com.cardinalstar.cubicchunks.network.PacketEncoderUnloadCube;
@@ -26,6 +30,7 @@ import com.cardinalstar.cubicchunks.util.CubePos;
 import com.cardinalstar.cubicchunks.util.HashMap2D;
 import com.cardinalstar.cubicchunks.util.HashMap3D;
 import com.cardinalstar.cubicchunks.util.HashSet3D;
+import com.cardinalstar.cubicchunks.world.core.IColumnInternal;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
 
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
@@ -40,6 +45,9 @@ public class WorldSyncStateMachine {
     private static class ColumnData {
 
         public int syncedCubeCount;
+
+        /** The column's top block heights as the client last received them, by local address. */
+        public final int[] sentHeights = new int[Cube.SIZE * Cube.SIZE];
     }
 
     private final HashMap2D<ColumnData> syncedColumns = new HashMap2D<>();
@@ -99,6 +107,7 @@ public class WorldSyncStateMachine {
 
                     PacketEncoderColumn.createPacket(cube.getColumn())
                         .sendToPlayer(player.player);
+                    readHeights(cube.getColumn(), columnData.sentHeights);
 
                     MinecraftForge.EVENT_BUS
                         .post(new ChunkWatchEvent.Watch(new ChunkCoordIntPair(pos.getX(), pos.getZ()), player.player));
@@ -107,7 +116,7 @@ public class WorldSyncStateMachine {
                 columnData.syncedCubeCount++;
                 syncedCubes.add(pos);
 
-                sendCubeData(cube);
+                sendCubeData(cube, columnData);
 
                 dirtyBlocks.remove(pos.getX(), pos.getY(), pos.getZ());
 
@@ -130,8 +139,14 @@ public class WorldSyncStateMachine {
                 Cube cube = provider.getLoadedCube(e.getX(), e.getY(), e.getZ());
 
                 if (cube != null) {
-                    PacketEncoderCubeBlockChange.createPacket(cube, e.getValue())
-                        .sendToPlayer(player.player);
+                    PacketCubeBlockChange packet = PacketEncoderCubeBlockChange.createPacket(cube, e.getValue());
+                    packet.sendToPlayer(player.player);
+
+                    // the packet carries the heights of the block columns it changes
+                    int[] sentHeights = syncedColumns.get(e.getX(), e.getZ()).sentHeights;
+                    for (int heightValue : packet.heightValues()) {
+                        sentHeights[heightValue & 0xFF] = heightValue >> 8;
+                    }
 
                     ShortIterator blocks = e.getValue()
                         .iterator();
@@ -158,7 +173,9 @@ public class WorldSyncStateMachine {
         }
 
         for (var e : dirtyHeightCols.fastEntryIterable()) {
-            if (!syncedColumns.containsKey(e.getX(), e.getZ())) {
+            ColumnData columnData = syncedColumns.get(e.getX(), e.getZ());
+
+            if (columnData == null) {
                 CubicChunks.LOGGER.trace(
                     "Tried to sync {} height map updates to a column at {} which was not synced",
                     e.getValue()
@@ -172,8 +189,15 @@ public class WorldSyncStateMachine {
                 Chunk column = provider.getLoadedColumn(e.getX(), e.getZ());
 
                 if (column != null) {
-                    PacketEncoderHeightMapUpdate.createPacket(e.getValue(), column)
-                        .sendToPlayer(player.player);
+                    BooleanArray2D changed = changedHeights(
+                        e.getValue(),
+                        columnData.sentHeights,
+                        ((IColumnInternal) column)::getTopYWithStaging);
+
+                    if (!changed.isEmpty()) {
+                        PacketEncoderHeightMapUpdate.createPacket(changed, column)
+                            .sendToPlayer(player.player);
+                    }
                 }
             }
         }
@@ -189,11 +213,11 @@ public class WorldSyncStateMachine {
 
     public void onColumnHeightMarkedDirty(int x, int z) {
         dirtyHeightCols.computeIfAbsent(x >> 4, z >> 4, (x1, z1) -> new BooleanArray2D(16, 16))
-            .set(x & 0xF, z & 0xF);
+            .set2d(x & 0xF, z & 0xF);
     }
 
-    public void onSurfaceTracked(Cube cube) {
-        dirtyHeightCols.computeIfAbsent(cube.getX(), cube.getZ(), (x1, z1) -> new BooleanArray2D(16, 16))
+    public void onColumnHeightsChanged(int columnX, int columnZ) {
+        dirtyHeightCols.computeIfAbsent(columnX, columnZ, (x1, z1) -> new BooleanArray2D(16, 16))
             .set(0, 256, true);
     }
 
@@ -206,13 +230,18 @@ public class WorldSyncStateMachine {
         CubePos pos = cube.getCoords();
 
         if (syncedCubes.contains(pos) && player.isWatchingCube(pos.getX(), pos.getY(), pos.getZ())) {
-            sendCubeData(cube);
+            sendCubeData(cube, syncedColumns.get(pos.getX(), pos.getZ()));
         }
     }
 
-    private void sendCubeData(Cube cube) {
+    private void sendCubeData(Cube cube, ColumnData columnData) {
         PacketEncoderCube.createPacket(cube)
             .sendToPlayer(player.player);
+
+        // non-empty cubes carry their column's heights (WorldEncoder.encodeCube)
+        if (!cube.isEmpty()) {
+            readHeights(cube.getColumn(), columnData.sentHeights);
+        }
 
         cube.cubeTileEntityMap.forEach((tePos, te) -> {
             Packet desc = te.getDescriptionPacket();
@@ -221,5 +250,32 @@ public class WorldSyncStateMachine {
                 player.player.playerNetServerHandler.sendPacket(desc);
             }
         });
+    }
+
+    private static void readHeights(Chunk column, int[] heights) {
+        for (int i = 0; i < heights.length; i++) {
+            heights[i] = ((IColumnInternal) column)
+                .getTopYWithStaging(AddressTools.getLocalX(i), AddressTools.getLocalZ(i));
+        }
+    }
+
+    /**
+     * Returns the marked block columns whose top height differs from the height the client has, and records their
+     * new heights as sent. Block changes below the top and surfaces the client already knows send nothing.
+     */
+    static BooleanArray2D changedHeights(BooleanArray2D marked, int[] sentHeights, IntBinaryOperator topY) {
+        BooleanArray2D changed = new BooleanArray2D(16, 16);
+
+        for (Vector2ic v : marked) {
+            int index = AddressTools.getLocalAddress(v.x(), v.y());
+            int height = topY.applyAsInt(v.x(), v.y());
+
+            if (sentHeights[index] != height) {
+                sentHeights[index] = height;
+                changed.set2d(v.x(), v.y());
+            }
+        }
+
+        return changed;
     }
 }

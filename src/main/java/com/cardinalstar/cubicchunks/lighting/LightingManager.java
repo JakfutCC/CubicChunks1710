@@ -186,7 +186,7 @@ public class LightingManager implements ILightingManager {
         if (!world.isRemote) {
             CubicPlayerManager playerManager = getPlayerManager();
             if (playerManager != null) {
-                playerManager.onSurfaceTracked((Cube) cube);
+                playerManager.onColumnHeightsChanged((Cube) cube);
             }
             tryScheduleOnLoadHeightChangeRelight(cube);
         }

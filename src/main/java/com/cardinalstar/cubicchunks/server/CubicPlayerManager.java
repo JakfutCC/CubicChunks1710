@@ -277,9 +277,12 @@ public class CubicPlayerManager extends PlayerManager implements CubeLoaderCallb
 
     // Note these arguments are in global block coordinates
 
-    public void onSurfaceTracked(Cube cube) {
+    /**
+     * Any top block height of the cube's column may have changed, because the cube's surface was tracked.
+     */
+    public void onColumnHeightsChanged(Cube cube) {
         for (var player : players.getPlayerArray()) {
-            player.sync.onSurfaceTracked(cube);
+            player.sync.onColumnHeightsChanged(cube.getX(), cube.getZ());
         }
     }
 
