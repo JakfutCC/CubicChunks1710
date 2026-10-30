@@ -37,7 +37,6 @@ import com.cardinalstar.cubicchunks.api.compat.CubicChunksVideoSettings;
 import com.cardinalstar.cubicchunks.mixin.api.ICubicWorldInternal;
 import com.cardinalstar.cubicchunks.mixin.early.client.IGuiOptionsRowList;
 import com.cardinalstar.cubicchunks.mixin.early.client.IGuiVideoSettings;
-import com.cardinalstar.cubicchunks.network.ProtocolCheck;
 import com.cardinalstar.cubicchunks.server.ICubicPlayerList;
 import com.cardinalstar.cubicchunks.util.MathUtil;
 import com.cardinalstar.cubicchunks.util.Mods;
@@ -52,10 +51,6 @@ public class ClientEventHandler {
 
     @SubscribeEvent
     public void onWorldClientTickEvent(TickEvent.ClientTickEvent evt) {
-        if (evt.phase == TickEvent.Phase.END) {
-            ProtocolCheck.clientTick(Minecraft.getMinecraft());
-        }
-
         ICubicWorldInternal world = (ICubicWorldInternal) FMLClientHandler.instance()
             .getWorldClient();
         // does the world exist? Is the game paused?

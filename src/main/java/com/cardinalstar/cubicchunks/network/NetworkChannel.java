@@ -70,6 +70,7 @@ public class NetworkChannel extends MessageToMessageCodec<FMLProxyPacket, CCPack
 
     public static void init() {
         // forces this class to be loaded
+        ProtocolCheck.init();
     }
 
     @Override
