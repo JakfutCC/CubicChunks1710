@@ -51,6 +51,11 @@ public enum Mixins implements IMixins {
         .addCommonMixins("common.MixinBlockFalling")
         .setPhase(Phase.EARLY)
         .setApplyIf(() -> true)),
+    MIXIN_WORLD_NEIGHBOR_NOTIFY(new MixinBuilder(
+        "Flattening the neighbour-notify cascade to prevent support-dependency stack overflow (issue #61).")
+            .addCommonMixins("common.MixinWorld_NeighborNotify")
+            .setPhase(Phase.EARLY)
+            .setApplyIf(() -> true)),
     MIXIN_WORLD_GEN_BIG_MUSHROOM(
         new MixinBuilder("Allowing big mushrooms to generate and be grown above 256 and below 0.")
             .addCommonMixins("common.MixinWorldGenBigMushroom")
@@ -110,6 +115,10 @@ public enum Mixins implements IMixins {
             .addCommonMixins("common.MixinWorld_DeferInit", "common.MixinWorld_DeferInit$MixinWorldServer")
             .setPhase(Phase.EARLY)
             .setApplyIf(() -> true)),
+    ACCESSOR_NBT(new MixinBuilder("Add accessors for NBT tag internals.")
+        .addCommonMixins("common.AccessorNBTTagList", "common.AccessorNBTTagCompound")
+        .setPhase(Phase.EARLY)
+        .setApplyIf(() -> true)),
 
     // CHUNK
     MIXIN_CHUNK(new MixinBuilder("Various modifications to inject cubes, height map patches, etc into Chunks.")
@@ -140,10 +149,10 @@ public enum Mixins implements IMixins {
         new MixinBuilder("Mixin for world settings allowing cubes.").addCommonMixins("common.MixinWorldSettings")
             .setPhase(Phase.EARLY)
             .setApplyIf(() -> true)),
-    MIXIN_WORLD_PROVIDER(
-        new MixinBuilder("Implementing ICubicWorldProvider.").addCommonMixins("common.MixinWorldProvider")
-            .setPhase(Phase.EARLY)
-            .setApplyIf(() -> true)),
+    MIXIN_WORLD_PROVIDER(new MixinBuilder("Intercept WorldProvider getActualHeight + player spawning.")
+        .addCommonMixins("common.MixinWorldProvider")
+        .setPhase(Phase.EARLY)
+        .setApplyIf(() -> true)),
     MIXIN_WORLD(new MixinBuilder("Implementing ICubicWorld.").addCommonMixins("common.MixinWorld")
         .setPhase(Phase.EARLY)
         .setApplyIf(() -> true)),
@@ -206,6 +215,10 @@ public enum Mixins implements IMixins {
             .setApplyIf(() -> true)),
     MIXIN_ENTITY_BRIGHTNESS(
         new MixinBuilder("Fix Entity.getBrightness").addCommonMixins("common.MixinEntity_Brightness")
+            .setPhase(Phase.EARLY)
+            .setApplyIf(() -> true)),
+    MIXIN_ENTITY_BAT(
+        new MixinBuilder("Allowing bats to fly and hang below y = 0.").addCommonMixins("common.MixinEntityBat")
             .setPhase(Phase.EARLY)
             .setApplyIf(() -> true)),
 
@@ -318,6 +331,10 @@ public enum Mixins implements IMixins {
         .setApplyIf(() -> true)),
     MIXIN_FORGE_CHUNK_MANAGER(new MixinBuilder("Add cubic chunk hooks to ForgeChunkManager loadWorld/saveWorld")
         .addCommonMixins("common.forge.MixinForgeChunkManager")
+        .setPhase(Phase.EARLY)
+        .setApplyIf(() -> true)),
+    MIXIN_DIMENSION_MANAGER(new MixinBuilder("Unload empty cubic dimensions like Forge does for chunks")
+        .addCommonMixins("common.forge.MixinDimensionManager")
         .setPhase(Phase.EARLY)
         .setApplyIf(() -> true)),
 
