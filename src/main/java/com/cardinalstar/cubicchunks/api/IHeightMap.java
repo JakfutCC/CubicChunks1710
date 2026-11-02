@@ -36,19 +36,6 @@ public interface IHeightMap {
     void onOpacityChange(int localX, int blockY, int localZ, boolean occluded);
 
     /**
-     * Returns true if the block at the given position is occluded by a known non-opaque block further up.
-     *
-     * @param localX local block x-coordinate (0..15)
-     * @param blockY global block y-coordinate
-     * @param localZ local block zPosition-coordinate (0..15)
-     *
-     * @return true if there exists a known non-opaque block above the given y-coordinate
-     */
-    default boolean isOccluded(int localX, int blockY, int localZ) {
-        return blockY <= this.getTopBlockY(localX, localZ);
-    }
-
-    /**
      * Returns the y-coordinate of the highest non-transparent block in the specified block-column.
      *
      * @param localX local block x-coordinate (0..15)

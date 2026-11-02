@@ -21,7 +21,6 @@ package com.cardinalstar.cubicchunks.api;/*
                                           * THE SOFTWARE.
                                           */
 
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +43,6 @@ import com.cardinalstar.cubicchunks.api.worldgen.IWorldGenerator;
 import com.cardinalstar.cubicchunks.server.chunkio.CubeInitLevel;
 import com.cardinalstar.cubicchunks.util.CubePos;
 import com.cardinalstar.cubicchunks.world.ICubicWorld;
-import com.gtnewhorizon.gtnhlib.blockpos.BlockPos;
 
 @ParametersAreNonnullByDefault
 public interface ICube extends XYZAddressable, MetaContainer {
@@ -54,18 +52,6 @@ public interface ICube extends XYZAddressable, MetaContainer {
      */
     int SIZE = 16;
     double SIZE_D = 16.0D;
-
-    /**
-     * Retrieve the raw light level at the specified location
-     *
-     * @param lightType The type of light (sky or block light)
-     * @param x         The x position at which light should be checked
-     * @param y         The y position at which light should be checked
-     * @param z         The zPosition position at which light should be checked
-     *
-     * @return the light level
-     */
-    int getSavedLightValue(EnumSkyBlock lightType, int x, int y, int z);
 
     /**
      * Set the raw light level at the specified location
@@ -94,19 +80,6 @@ public interface ICube extends XYZAddressable, MetaContainer {
      */
     @Nullable
     TileEntity getTileEntityUnsafe(int x, int y, int z);
-
-    /**
-     * Retrieves the tile entity at the specified location if there is one. If not, it creates
-     * the tile entity if there isn't one at the location and the block at the specified location can
-     * hold a tile entity.
-     *
-     * @param x target x location
-     * @param y target y location
-     * @param z target zPosition location
-     * @return Returns a tile entity if the block at the location can create one.
-     *         Will always create the tile entity if it can.
-     */
-    TileEntity getBlockTileEntityInChunk(int x, int y, int z);
 
     /**
      * Add a tile entity to this cube
@@ -172,17 +145,6 @@ public interface ICube extends XYZAddressable, MetaContainer {
      */
     CubePos getCoords();
 
-    /**
-     * Check whether a given global block position is contained in this cube
-     *
-     * @param x the x position of the block
-     * @param y the y position of the block
-     * @param z the zPosition position of the block
-     *
-     * @return {@code true} if the position is within this cube, {@code false} otherwise
-     */
-    boolean containsCoordinate(int x, int y, int z);
-
     @Nullable
     ExtendedBlockStorage getStorage();
 
@@ -204,8 +166,6 @@ public interface ICube extends XYZAddressable, MetaContainer {
     List<Entity> getEntitySet();
 
     void addEntity(Entity entity);
-
-    boolean removeEntity(Entity entity);
 
     /**
      * Check if any modifications happened to this cube since it was loaded from disk
@@ -260,8 +220,6 @@ public interface ICube extends XYZAddressable, MetaContainer {
 
     boolean isCubeLoaded();
 
-    boolean hasLightUpdates();
-
     @NotNull
     BiomeGenBase getBiome(int x, int y, int z);
 
@@ -274,16 +232,6 @@ public interface ICube extends XYZAddressable, MetaContainer {
      * @param biome The biome at the given cube coordinates, or null to defer to the column
      */
     void setBiome(int x, int y, int z, BiomeGenBase biome);
-
-    BlockPos localAddressToBlockPos(int localAddress);
-
-    /**
-     * Returns a set of reasons this cube is forced to remain loaded if it's forced to remain loaded,
-     * or empty enum set if it can be unloaded.
-     *
-     * @return EnumSet of reasons for this cube to stay loaded. Empty if it can be unloaded.
-     */
-    EnumSet<ForcedLoadReason> getForceLoadStatus();
 
     enum ForcedLoadReason {
         SPAWN_AREA,

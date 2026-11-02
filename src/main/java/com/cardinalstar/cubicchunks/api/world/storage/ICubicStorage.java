@@ -67,41 +67,6 @@ public interface ICubicStorage extends Flushable, AutoCloseable {
     boolean cubeExists(CubePos pos) throws IOException;
 
     /**
-     * Checks for the existence of multiple cubes+columns at once.
-     *
-     * @param positions a {@link PosBatch} containing the positions of all the cubes+columns to check for
-     * @return a {@link PosBatch} containing the positions of all the cubes+columns that exist
-     * @throws IOException if there is an IO error
-     */
-    @Nonnull
-    default PosBatch existsBatch(PosBatch positions) throws IOException {
-        // default implementation: check positions individually, but in parallel
-        try {
-            return new PosBatch(
-                positions.columns.parallelStream()
-                    .filter(pos -> {
-                        try {
-                            return this.columnExists(pos);
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    })
-                    .collect(Collectors.toSet()),
-                positions.cubes.parallelStream()
-                    .filter(pos -> {
-                        try {
-                            return this.cubeExists(pos);
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    })
-                    .collect(Collectors.toSet()));
-        } catch (UncheckedIOException e) {
-            throw e.getCause(); // rethrow original exception
-        }
-    }
-
-    /**
      * Reads the NBT data for the column at the given position.
      *
      * @param pos the column's position

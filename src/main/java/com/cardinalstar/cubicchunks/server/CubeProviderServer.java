@@ -48,8 +48,6 @@ import net.minecraft.world.chunk.storage.IChunkLoader;
 import net.minecraft.world.gen.ChunkProviderServer;
 
 import com.cardinalstar.cubicchunks.CubicChunks;
-import com.cardinalstar.cubicchunks.api.IColumn;
-import com.cardinalstar.cubicchunks.api.ICube;
 import com.cardinalstar.cubicchunks.api.XYZAddressable;
 import com.cardinalstar.cubicchunks.api.worldgen.IWorldGenerator;
 import com.cardinalstar.cubicchunks.server.chunkio.CubeInitLevel;
@@ -97,7 +95,6 @@ public class CubeProviderServer extends ChunkProviderServer
     @Nonnull
     private final CubeLoaderServer cubeLoader;
 
-    // @Nonnull private final CubePrimer cubePrimer;
     @Nonnull
     private final IWorldGenerator worldGenerator;
     @Nonnull
@@ -298,10 +295,6 @@ public class CubeProviderServer extends ChunkProviderServer
 
     public void registerCallback(CubeLoaderCallback callback) {
         this.callbacks.add(callback);
-    }
-
-    public void removeCallback(CubeLoaderCallback callback) {
-        this.callbacks.remove(callback);
     }
 
     public void tick() {
@@ -578,37 +571,6 @@ public class CubeProviderServer extends ChunkProviderServer
     @Override
     public Chunk getColumn(int columnX, int columnZ, Requirement effort) {
         return cubeLoader.getColumn(columnX, columnZ, effort);
-    }
-
-    public String dumpLoadedCubes() {
-        StringBuilder sb = new StringBuilder(10000).append("\n");
-        for (Chunk chunk : this.loadedChunks) {
-            if (chunk == null) {
-                sb.append("column = null\n");
-                continue;
-            }
-            sb.append("Column[")
-                .append(chunk.xPosition)
-                .append(", ")
-                .append(chunk.zPosition)
-                .append("] {");
-            boolean isFirst = true;
-            for (ICube cube : ((IColumn) chunk).getLoadedCubes()) {
-                if (!isFirst) {
-                    sb.append(", ");
-                }
-                isFirst = false;
-                if (cube == null) {
-                    sb.append("cube = null");
-                    continue;
-                }
-                sb.append("Cube[")
-                    .append(cube.getY())
-                    .append("]");
-            }
-            sb.append("\n");
-        }
-        return sb.toString();
     }
 
     @Override

@@ -26,11 +26,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 public class Bits {
 
-    public static long packUnsignedToLong(int unsigned, int size, int offset) {
-        // same as signed
-        return packSignedToLong(unsigned, size, offset);
-    }
-
     public static long packSignedToLong(int signed, int size, int offset) {
         long result = signed & getMask(size);
         return result << offset;
@@ -46,34 +41,9 @@ public class Bits {
         return result << offset;
     }
 
-    public static int unpackUnsigned(long packed, int size, int offset) {
-        packed = packed >> offset;
-        return (int) packed & getMask(size);
-    }
-
-    public static int unpackSigned(long packed, int size, int offset) {
-        // first, scrollOffset to the far left and back so we can preserve the two's complement
-        int complementOffset = 64 - offset - size;
-        packed = packed << complementOffset >> complementOffset;
-
-        // then unpack the integer
-        packed = packed >> offset;
-        return (int) packed;
-    }
-
     public static int unpackUnsigned(int packed, int size, int offset) {
         packed = packed >> offset;
         return packed & getMask(size);
-    }
-
-    public static int unpackSigned(int packed, int size, int offset) {
-        // first, scrollOffset to the far left and back so we can preserve the two's complement
-        int complementOffset = 64 - offset - size;
-        packed = packed << complementOffset >> complementOffset;
-
-        // then unpack the integer
-        packed = packed >> offset;
-        return packed;
     }
 
     public static int getMask(int size) {
@@ -81,17 +51,5 @@ public class Bits {
         // we could allow them, but I don't want to add conditionals so this method stays very fast
         assert (size > 0 && size < 32);
         return 0xffffffff >>> (32 - size);
-    }
-
-    public static int getMinSigned(int size) {
-        return -(1 << (size - 1));
-    }
-
-    public static int getMaxSigned(int size) {
-        return (1 << (size - 1)) - 1;
-    }
-
-    public static int getMaxUnsigned(int size) {
-        return (1 << size) - 1;
     }
 }

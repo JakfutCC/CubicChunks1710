@@ -35,7 +35,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
-import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 
 import com.cardinalstar.cubicchunks.CubicChunks;
@@ -53,26 +52,11 @@ import cpw.mods.fml.common.eventhandler.ListenerList;
 
 public class CompatHandler {
 
-    private static final Set<String> IWORLDGENERATOR_FAKE_HEIGHT = ImmutableSet
-        .of("ic2", "thaumcraft", "fossil", "realistictorches", "iceandfire", "tg" // ThaumicGadgets
-        );
-
-    private static final Set<String> POPULATE_EVENT_PRE_FAKE_HEIGHT = ImmutableSet.of("reccomplex");
-
     private static final Set<String> DECORATE_EVENT_FAKE_HEIGHT = ImmutableSet.of("reccomplex");
 
     private static final Set<String> POST_DECORATE_EVENT_FAKE_HEIGHT = ImmutableSet.of("joshxmas");
 
     private static final Set<String> FAKE_CHUNK_LOAD = ImmutableSet.of("zerocore");
-    private static Set<String> vanillaCompatPopulationFakeHeight = ImmutableSet.of("biomesoplenty" // temporary
-                                                                                                   // workaround:
-                                                                                                   // biomesoplenty
-                                                                                                   // fires population
-                                                                                                   // events directly
-                                                                                                   // instead of going
-                                                                                                   // through forge
-                                                                                                   // event factory
-    );
 
     private static final Map<String, String> packageToModId = getPackageToModId();
 
@@ -139,13 +123,6 @@ public class CompatHandler {
     // performance is not a big issue there, as foring most of those events
     // is a relatively small part of the whole worldgen
 
-    public static boolean postChunkPopulatePreWithFakeWorldHeight(PopulateChunkEvent.Pre event) {
-        if (!(MinecraftForge.EVENT_BUS instanceof IEventBus)) {
-            MinecraftForge.EVENT_BUS.post(event);
-        }
-        return postEventPerModFakeHeight(event.world, event, MinecraftForge.EVENT_BUS, POPULATE_EVENT_PRE_FAKE_HEIGHT);
-    }
-
     public static boolean postBiomeDecorateWithFakeWorldHeight(DecorateBiomeEvent.Decorate event) {
         if (!(MinecraftForge.EVENT_BUS instanceof IEventBus)) {
             MinecraftForge.EVENT_BUS.post(event);
@@ -179,9 +156,6 @@ public class CompatHandler {
 
     private static void onChunkLoadImpl(ChunkEvent.Load load) {
         IEventBus bus = (IEventBus) MinecraftForge.EVENT_BUS;
-        // if (bus.isShutdown()) {
-        // return;
-        // }
         int i = -1;
         try {
             for (i = 0; i < fakeChunkLoadListeners.length; i++) {
@@ -199,9 +173,6 @@ public class CompatHandler {
     private static <T> boolean postEvent(T ctx, Event event, EventBus eventBus, Set<String> modIds, Consumer<T> preEvt,
         Consumer<T> postEvt) {
         IEventBus forgeEventBus = (IEventBus) eventBus;
-        // if (forgeEventBus.isShutdown()) {
-        // return false;
-        // }
         IEventListener[] listeners = event.getListenerList()
             .getListeners(forgeEventBus.getBusID());
         int index = 0;

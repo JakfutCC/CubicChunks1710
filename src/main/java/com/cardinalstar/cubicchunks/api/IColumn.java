@@ -35,17 +35,6 @@ import com.cardinalstar.cubicchunks.world.cube.Cube;
 public interface IColumn extends XZAddressable {
 
     /**
-     * Return Y position of the block directly above the top non-transparent block (opacity != 0),
-     * or a value below minimum world height of there is no top block.
-     *
-     * @param pos the position for which the height should be returned. Note that Y coordinate may not necessarily be
-     *            ignored, which gives the
-     *            possibility of multiple layers/stacked dimensions
-     * @return Y coordinate of the block directly above the top non-transparent block
-     */
-    int getHeight(int x, int y, int z);
-
-    /**
      * Return Y position of the block directly above the top non-transparent block,
      * or a value below minimum world height of there is no top block.
      *
@@ -56,27 +45,6 @@ public interface IColumn extends XZAddressable {
      */
     @Deprecated
     int getHeightValue(int localX, int localZ);
-
-    /**
-     * Return Y position of the block directly above the top non-transparent block,
-     * or a value below minimum world height of there is no top block.
-     *
-     * @param localX x coordinate relative to this chunk. Only values in range [0, {@link ICube#SIZE}) are valid
-     * @param blockY the Y for which the height should be returned. This is global world coordinate, not a local
-     *               coordinate.
-     *               Note that Y coordinate may not necessarily be ignored, which gives the possibility of multiple
-     *               layers/stacked dimensions
-     * @param localZ zPosition coordinate relative to this chunk. Only values in range [0, {@link ICube#SIZE}) are valid
-     * @return Height at specified X and Z coordinates
-     */
-    int getHeightValue(int localX, int blockY, int localZ);
-
-    /**
-     * Check if this column needs to be ticked
-     *
-     * @return {@code true} if any cube in this column needs to be ticked, {@code false} otherwise
-     */
-    boolean shouldTick();
 
     /**
      * @return the height map of this column
@@ -136,13 +104,6 @@ public interface IColumn extends XZAddressable {
      */
     @Nullable
     Cube removeCube(int cubeY);
-
-    /**
-     * Check if there are any loaded cube in this column
-     *
-     * @return {@code true} if there is at least on loaded cube in this column, {@code false} otherwise
-     */
-    boolean hasLoadedCubes();
 
     /**
      * Note: this method is intended for internal use only and will be removed.

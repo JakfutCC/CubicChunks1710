@@ -17,15 +17,6 @@ public interface IBlockView {
 
     int getBlockMetadata(int x, int y, int z);
 
-    default IBlockView subView(Box box) {
-        Box thisBox = getBounds();
-
-        if (thisBox != null && !thisBox.contains(box))
-            throw new IllegalArgumentException("sub view box must be completely contained within parent view's bounds");
-
-        return new SubBlockView(this, box);
-    }
-
     /**
      * Gets the bounds of this view, if possible. Returns null when the view is unbounded.
      */

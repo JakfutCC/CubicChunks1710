@@ -43,12 +43,6 @@ public class MixinSpawnerAnimals implements ISpawnerAnimals.Handler {
         this.customSpawner = spawner;
     }
 
-    @Override
-    @Nullable
-    public ISpawnerAnimals getEntitySpawner() {
-        return this.customSpawner;
-    }
-
     @Inject(method = "findChunksForSpawning", cancellable = true, at = @At("HEAD"))
     private void onSpawnMobs(WorldServer world, boolean hostileEnable, boolean peacefulEnable,
         boolean spawnOnSetTickRate, CallbackInfoReturnable<Integer> cir) {

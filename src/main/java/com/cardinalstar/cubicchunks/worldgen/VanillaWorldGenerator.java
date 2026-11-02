@@ -41,7 +41,6 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
-import org.joml.Vector3i;
 import org.joml.Vector3ic;
 
 import com.cardinalstar.cubicchunks.CubicChunks;
@@ -230,12 +229,6 @@ public class VanillaWorldGenerator implements IWorldGenerator, IPreloadFailureDe
 
             Cube c = new Cube(base, ebsY, ebs);
 
-            try {
-                decorator.generate(world, c);
-            } catch (Throwable t) {
-                CubicChunks.LOGGER.error("Could not run generation for cube {},{},{}", columnX, ebsY, columnZ, t);
-            }
-
             cubes.add(c);
         }
 
@@ -247,9 +240,7 @@ public class VanillaWorldGenerator implements IWorldGenerator, IPreloadFailureDe
     }
 
     @Override
-    public void recreateStructures(ICube cube) {
-
-    }
+    public void recreateStructures(ICube cube) {}
 
     @Override
     public void recreateStructures(Chunk column) {
@@ -290,12 +281,6 @@ public class VanillaWorldGenerator implements IWorldGenerator, IPreloadFailureDe
 
                     Cube c = new Cube(base, ebsY, ebs);
 
-                    try {
-                        decorator.generate(world, c);
-                    } catch (Throwable t) {
-                        CubicChunks.LOGGER.error("Could not run generation for cube {},{},{}", cubeX, ebsY, cubeZ, t);
-                    }
-
                     generatedCubes.add(c);
                 }
 
@@ -311,12 +296,6 @@ public class VanillaWorldGenerator implements IWorldGenerator, IPreloadFailureDe
                 IBlockView cubeData = new UniformBlockView(filler);
 
                 Cube cube = new Cube(chunk, cubeY, cubeData);
-
-                try {
-                    decorator.generate(world, cube);
-                } catch (Throwable t) {
-                    CubicChunks.LOGGER.error("Could not run generation for cube {},{},{}", cubeX, cubeY, cubeZ, t);
-                }
 
                 generatedCubes.add(cube);
             }
@@ -394,13 +373,6 @@ public class VanillaWorldGenerator implements IWorldGenerator, IPreloadFailureDe
             loader.uncacheCubes();
         }
     }
-
-    private static final Vector3ic[] AFFECTED_CUBES = { new Vector3i(1, 0, 0), new Vector3i(0, 1, 0),
-        new Vector3i(1, 1, 0), new Vector3i(0, 0, 1), new Vector3i(1, 0, 1), new Vector3i(0, 1, 1),
-        new Vector3i(1, 1, 1), };
-
-    // private static final short[] CUBE_FLAGS = { Cube.POP_100, Cube.POP_010, Cube.POP_110, Cube.POP_001, Cube.POP_101,
-    // Cube.POP_011, Cube.POP_111, };
 
     private Box getRelevantCubes(int x, int y, int z) {
         if (y >= 0 && y < 16) {
@@ -513,7 +485,6 @@ public class VanillaWorldGenerator implements IWorldGenerator, IPreloadFailureDe
                 }
             }
 
-            decorator.pregenerate(world, pos);
         }
 
         if (populate) {

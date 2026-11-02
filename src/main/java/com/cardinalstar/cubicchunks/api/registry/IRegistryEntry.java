@@ -1,7 +1,5 @@
 package com.cardinalstar.cubicchunks.api.registry;
 
-import javax.annotation.Nullable;
-
 import cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier;
 
 /**
@@ -13,11 +11,4 @@ import cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier;
 public interface IRegistryEntry<V> {
 
     V setRegistryName(UniqueIdentifier name);
-
-    @Nullable
-    UniqueIdentifier getRegistryName();
-
-    String getLocalizedName();
-
-    String getUnlocalizedName();
 }

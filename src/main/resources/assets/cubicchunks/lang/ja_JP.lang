@@ -25,7 +25,6 @@ cubicchunks.command.config.set.done=設定オプション %s が "%s" に設定�
 cubicchunks.command.config.set.requires_restart=設定オプション %s を変更するには、ワールドの再起動が必要です！
 cubicchunks.command.usage.config.set.primitive=設定オプション %s の型は %s で、1 つの引数が必要です
 cubicchunks.command.config.reload.done=Cubic Chunksの設定はリロードされました
-cubicchunks.config.enable_chunk_debugging=チャンクステータスのデバッグを有効化
 
 cubicchunks.config.optimizations=最適化
 cubicchunks.config.optimizations.background_threads=バックグラウンドスレッド

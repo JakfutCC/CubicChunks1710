@@ -166,10 +166,6 @@ public class PhosphorLightEngine {
         }
     }
 
-    public boolean hasLightUpdates() {
-        return !this.queuedLightUpdates[0].isEmpty() || !this.queuedLightUpdates[1].isEmpty();
-    }
-
     /**
      * Calls {@link #processLightUpdatesForType(EnumSkyBlock)} for both light types
      *
@@ -238,9 +234,7 @@ public class PhosphorLightEngine {
                             + " aware you have misbehaving mods and cannot resolve this issue, you can safely disable this warning by setting"
                             + " `enable_illegal_thread_access_warnings` to `false` in Phosphor's configuration file for the time being.)",
                         e);
-
                 }
-
             }
 
             // Wait for the lock to be released. This will likely introduce unwanted stalls, but will mitigate the
@@ -729,13 +723,6 @@ public class PhosphorLightEngine {
         public int posX;
         public int posY;
         public int posZ;
-
-        void setPos(int x, int y, int z) {
-            this.posX = x;
-            this.posY = y;
-            this.posZ = z;
-        }
-
     }
 
     static class ClientUtils {

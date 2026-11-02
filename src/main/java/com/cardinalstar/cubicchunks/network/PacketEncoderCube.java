@@ -39,8 +39,6 @@ import com.cardinalstar.cubicchunks.network.PacketEncoderCube.PacketCube;
 import com.cardinalstar.cubicchunks.server.chunkio.CubeClientData;
 import com.cardinalstar.cubicchunks.util.AddressTools;
 import com.cardinalstar.cubicchunks.util.CubePos;
-import com.cardinalstar.cubicchunks.util.CubeStatusVisualizer;
-import com.cardinalstar.cubicchunks.util.CubeStatusVisualizer.CubeStatus;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
 import com.github.bsideup.jabel.Desugar;
 
@@ -69,8 +67,6 @@ public class PacketEncoderCube extends CCPacketEncoder<PacketCube> {
     public PacketEncoderCube() {}
 
     public static PacketCube createPacket(Cube cube) throws IOException {
-        CubeStatusVisualizer.put(cube.getCoords(), CubeStatus.Synced);
-
         return new PacketCube(cube.getCoords(), CubeClientData.encode(cube), tilePositions(cube), null);
     }
 

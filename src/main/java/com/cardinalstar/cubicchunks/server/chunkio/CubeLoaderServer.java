@@ -9,8 +9,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.WorldServer;
@@ -37,7 +35,6 @@ import com.cardinalstar.cubicchunks.util.CubePos;
 import com.cardinalstar.cubicchunks.util.XZAddressable;
 import com.cardinalstar.cubicchunks.world.CubicChunksSavedData;
 import com.cardinalstar.cubicchunks.world.api.ICubeProviderServer.Requirement;
-import com.cardinalstar.cubicchunks.world.column.EmptyColumn;
 import com.cardinalstar.cubicchunks.world.core.IColumnInternal;
 import com.cardinalstar.cubicchunks.world.cube.BlankCube;
 import com.cardinalstar.cubicchunks.world.cube.BoundaryCube;
@@ -76,11 +73,6 @@ public class CubeLoaderServer implements ICubeLoader {
     private final int maxCube;
     private final int minCube;
 
-    @Nonnull
-    private final EmptyColumn emptyColumn;
-    @Nonnull
-    private final BlankCube emptyCube;
-
     public CubeLoaderServer(WorldServer world, ICubicStorage storage, IWorldGenerator generator,
         CubeLoaderCallback callback) {
         this.world = world;
@@ -96,8 +88,6 @@ public class CubeLoaderServer implements ICubeLoader {
         this.minCube = data.minHeight >> 4;
         this.maxCube = (data.maxHeight - 1) >> 4;
 
-        this.emptyColumn = new EmptyColumn(world, 0, 0);
-        this.emptyCube = new BlankCube(emptyColumn);
     }
 
     @Override
@@ -291,10 +281,6 @@ public class CubeLoaderServer implements ICubeLoader {
     @Override
     public void uncacheCubes() {
         cache = null;
-    }
-
-    public void preloadColumn(ChunkCoordIntPair pos) {
-        cubeIO.preloadColumn(pos);
     }
 
     public void preloadCube(CubePos pos, CubeInitLevel level) {
@@ -593,7 +579,6 @@ public class CubeLoaderServer implements ICubeLoader {
                     columns.put(info);
                 }
 
-                info.source = ObjectSource.GeneratedSideEffect;
                 info.column = column;
 
                 info.onColumnLoaded();
@@ -640,7 +625,6 @@ public class CubeLoaderServer implements ICubeLoader {
 
         public NBTTagCompound tag;
         public Chunk column;
-        public ObjectSource source;
 
         public final ObjectOpenHashSet<CubeInfo> containedCubes = new ObjectOpenHashSet<>();
 
@@ -674,7 +658,6 @@ public class CubeLoaderServer implements ICubeLoader {
             if (result == null) return false;
 
             this.column = result.object;
-            source = ObjectSource.Generated;
 
             onColumnLoaded();
 
@@ -691,8 +674,6 @@ public class CubeLoaderServer implements ICubeLoader {
             tag = cubeIO.loadColumn(pos);
 
             if (tag == null) return false;
-
-            source = ObjectSource.Disk;
 
             EVENT_BUS.post(new ColumnEvent.LoadNBT(world, pos, tag));
 

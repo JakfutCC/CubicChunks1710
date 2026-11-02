@@ -22,23 +22,16 @@ package com.cardinalstar.cubicchunks.mixin.early.client;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
 
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import com.cardinalstar.cubicchunks.world.ICubicWorld;
-
 @ParametersAreNonnullByDefault
 @Mixin(WorldProvider.class)
 public abstract class MixinWorldProvider {
-
-    @Shadow
-    public World worldObj;
 
     /**
      * Return Double.NaN to remove void fog and fix night vision potion below Y=0.
@@ -52,9 +45,5 @@ public abstract class MixinWorldProvider {
     @Inject(method = "getVoidFogYFactor", at = @At(value = "HEAD"), cancellable = true)
     private void getVoidFogYFactor_injectReplace(CallbackInfoReturnable<Double> cir) {
         cir.setReturnValue(Double.NaN);
-    }
-
-    private ICubicWorld cubicWorld() {
-        return (ICubicWorld) this.worldObj;
     }
 }

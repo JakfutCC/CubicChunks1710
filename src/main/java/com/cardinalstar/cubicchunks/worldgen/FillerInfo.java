@@ -9,10 +9,5 @@ public class FillerInfo {
     public ImmutableBlockMeta topFiller;
     public ImmutableBlockMeta bottomFiller;
 
-    public FillerInfo(ImmutableBlockMeta topFiller, ImmutableBlockMeta bottomFiller) {
-        this.topFiller = topFiller;
-        this.bottomFiller = bottomFiller;
-    }
-
     public FillerInfo() {}
 }

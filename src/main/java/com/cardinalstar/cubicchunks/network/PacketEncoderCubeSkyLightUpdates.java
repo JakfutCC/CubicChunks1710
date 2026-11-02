@@ -22,8 +22,6 @@ package com.cardinalstar.cubicchunks.network;
 
 import static com.cardinalstar.cubicchunks.util.Coords.cubeToMinBlock;
 
-import java.util.Arrays;
-
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -33,13 +31,10 @@ import net.minecraft.world.chunk.NibbleArray;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
 import com.cardinalstar.cubicchunks.client.CubeProviderClient;
-import com.cardinalstar.cubicchunks.util.AddressTools;
 import com.cardinalstar.cubicchunks.util.Bits;
 import com.cardinalstar.cubicchunks.util.CubePos;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
 import com.github.bsideup.jabel.Desugar;
-
-import gnu.trove.list.TShortList;
 
 // this class exists only for network compatibility with older servers
 @ParametersAreNonnullByDefault
@@ -57,44 +52,6 @@ public class PacketEncoderCubeSkyLightUpdates
     }
 
     public PacketEncoderCubeSkyLightUpdates() {}
-
-    public static PacketCubeSkyLightUpdates createPacket(Cube cube, TShortList updates) {
-        if (cube.getStorage() == null) {
-            // no light
-            return new PacketCubeSkyLightUpdates(cube.getCoords(), true, null);
-        }
-
-        byte[] data = new byte[updates.size() * 2];
-
-        for (int i = 0; i < updates.size(); i++) {
-            short packed = updates.get(i);
-            int localX = AddressTools.getLocalX(packed);
-            int localY = AddressTools.getLocalY(packed);
-            int localZ = AddressTools.getLocalZ(packed);
-
-            int value = cube.getStorage()
-                .getExtSkylightValue(localX, localY, localZ);
-
-            data[i * 2] = (byte) (Bits.packUnsignedToInt(localX, 4, 0) | Bits.packUnsignedToInt(localY, 4, 4));
-            data[i * 2 + 1] = (byte) (Bits.packUnsignedToInt(localZ, 4, 0) | Bits.packUnsignedToInt(value, 4, 4));
-        }
-
-        return new PacketCubeSkyLightUpdates(cube.getCoords(), false, data);
-    }
-
-    public static PacketCubeSkyLightUpdates createPacket(Cube cube) {
-        if (cube.getStorage() == null) {
-            // no light
-            return new PacketCubeSkyLightUpdates(cube.getCoords(), true, null);
-        }
-
-        byte[] data = Arrays.copyOf(
-            cube.getStorage()
-                .getSkylightArray().data,
-            Cube.SIZE * Cube.SIZE * Cube.SIZE / 2);
-
-        return new PacketCubeSkyLightUpdates(cube.getCoords(), true, data);
-    }
 
     @Override
     public byte getPacketID() {

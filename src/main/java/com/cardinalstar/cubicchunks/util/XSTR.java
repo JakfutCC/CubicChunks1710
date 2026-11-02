@@ -1,7 +1,6 @@
 package com.cardinalstar.cubicchunks.util;
 
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicLong;
 
 /*
  * TODO: Check the validity of the algorithm. There is a claim that this particular implementation is not faithful to
@@ -34,30 +33,6 @@ public class XSTR extends Random {
     private long seed;
     private static final double DOUBLE_UNIT = 0x1.0p-53; // 1.0 / (1L << 53)
     private static final float FLOAT_UNIT = 0x1.0p-24f; // 1.0f / (1 << 24)
-    private static final AtomicLong seedUniquifier = new AtomicLong(8682522807148012L);
-
-    /*
-     * MODIFIED BY: Robotia Modification: Implemented Random class seed generator
-     */
-    /**
-     * Creates a new pseudo random number generator. The seed is initialized to the current time, as if by
-     * <code>setSeed(System.currentTimeMillis());</code>.
-     */
-    public XSTR() {
-        this(seedUniquifier() ^ System.nanoTime());
-    }
-
-    private static long seedUniquifier() {
-        // L'Ecuyer, "Tables of Linear Congruential Generators of
-        // Different Sizes and Good Lattice Structure", 1999
-        for (;;) {
-            long current = seedUniquifier.get();
-            long next = current * 181783497276652981L;
-            if (seedUniquifier.compareAndSet(current, next)) {
-                return next;
-            }
-        }
-    }
 
     /**
      * Creates a new pseudo random number generator, starting with the specified seed, using

@@ -22,16 +22,10 @@ package com.cardinalstar.cubicchunks.mixin.api;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import net.minecraft.block.Block;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
-
-import com.cardinalstar.cubicchunks.api.IColumn;
 import com.cardinalstar.cubicchunks.api.ICube;
 import com.cardinalstar.cubicchunks.api.ICubicWorldServer;
 import com.cardinalstar.cubicchunks.api.IntRange;
 import com.cardinalstar.cubicchunks.api.XYZMap;
-import com.cardinalstar.cubicchunks.api.XZMap;
 import com.cardinalstar.cubicchunks.api.util.NotCubicChunksWorldException;
 import com.cardinalstar.cubicchunks.client.CubeProviderClient;
 import com.cardinalstar.cubicchunks.lighting.ILightingManager;
@@ -42,7 +36,6 @@ import com.cardinalstar.cubicchunks.world.ICubicWorld;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
 import com.cardinalstar.cubicchunks.world.cube.ICubeProvider;
 import com.cardinalstar.cubicchunks.world.cube.ICubeProviderInternal;
-import com.gtnewhorizon.gtnhlib.blockpos.BlockPos;
 
 /**
  * Internal ICubicWorld additions.
@@ -80,25 +73,6 @@ public interface ICubicWorldInternal extends ICubicWorld {
 
     void setHeightBounds(int minHeight, int maxHeight);
 
-    default BlockPos getTopSolidOrLiquidBlockVanilla(int x, int y, int z) {
-        Chunk chunk = ((World) this).getChunkFromBlockCoords(x, y);
-
-        BlockPos current = new BlockPos(x, chunk.getTopFilledSegment() + 16, z);
-        while (current.getY() >= 0) {
-            BlockPos next = current.down();
-            Block block = chunk.getBlock(next.getX(), next.getY(), next.getZ());
-
-            if (block.getMaterial()
-                .blocksMovement() && !block.isLeaves((World) this, next.getX(), next.getY(), next.getZ())
-                && !block.isFoliage((World) this, next.getX(), next.getY(), next.getZ())) {
-                break;
-            }
-            current = next;
-        }
-
-        return current;
-    }
-
     interface Server extends ICubicWorldInternal, ICubicWorldServer {
 
         @Override
@@ -109,8 +83,6 @@ public interface ICubicWorldInternal extends ICubicWorld {
         void addForcedCube(ICube cube);
 
         XYZMap<ICube> getForcedCubes();
-
-        XZMap<IColumn> getForcedColumns();
 
         CubeSplitTicks getScheduledTicks();
 

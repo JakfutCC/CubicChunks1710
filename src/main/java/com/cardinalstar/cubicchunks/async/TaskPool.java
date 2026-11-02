@@ -7,7 +7,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -22,14 +21,6 @@ import com.google.common.util.concurrent.AbstractFuture;
 public class TaskPool {
 
     private static final AtomicInteger THREAD_COUNTER = new AtomicInteger(0);
-
-    public static final ThreadFactory THREAD_FACTORY = runnable -> {
-        int number = THREAD_COUNTER.incrementAndGet();
-        String name = String.format("CC BG Thread %d", number);
-        Thread thread = new Thread(runnable, name);
-        thread.setDaemon(true);
-        return thread;
-    };
 
     private static final Object QUEUE_LOCK = new Object();
     private static final ArrayDeque<TaskContainer<?, ?>> TASK_QUEUE = new ArrayDeque<>(1024);
@@ -101,18 +92,6 @@ public class TaskPool {
                 }
             }
         }
-    }
-
-    public static final ITaskExecutor<Runnable, Void> RUNNABLE_EXECUTOR = tasks -> {
-        for (var task : tasks) {
-            task.getTask()
-                .run();
-            task.finish(null);
-        }
-    };
-
-    public static Future<Void> submit(Runnable task) {
-        return submit(RUNNABLE_EXECUTOR, task, null);
     }
 
     public static <TTask, TResult> Future<TResult> submit(ITaskExecutor<TTask, TResult> executor, TTask task) {

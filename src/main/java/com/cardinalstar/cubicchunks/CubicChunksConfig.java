@@ -91,10 +91,6 @@ public class CubicChunksConfig {
     @Config.RangeInt(min = 1)
     public static int maxCubesSentPerTick = 24;
 
-    @Config.LangKey("cubicchunks.config.enable_chunk_debugging")
-    @Config.Comment("Displays coloured boxes over cubes at Y=8 for debugging purposes.")
-    public static boolean enableChunkStatusDebugging = false;
-
     @Config.LangKey("cubicchunks.config.relight_checks_per_tick_per_column")
     @Config.Comment("In an attempt to fix lighting glitches over time, cubic chunks will keep updating light in specified amount of blocks per "
         + "column (chunk) per tick. This option shouldn't be necessary but may be useful for old worlds where lighting is broken or when "

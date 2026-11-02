@@ -20,7 +20,6 @@
  */
 package com.cardinalstar.cubicchunks.util;
 
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -31,30 +30,6 @@ import cpw.mods.fml.common.FMLCommonHandler;
  * Based on ideas from Forge 1.14.x DistExecutor.
  */
 public class SideUtils {
-
-    public static <T> T getForSide(Supplier<Supplier<T>> client, Supplier<Supplier<T>> server) {
-        if (FMLCommonHandler.instance()
-            .getSide()
-            .isClient()) {
-            return client.get()
-                .get();
-        } else {
-            return server.get()
-                .get();
-        }
-    }
-
-    public static <T, R> R getForSide(T param, Supplier<Function<T, R>> client, Supplier<Function<T, R>> server) {
-        if (FMLCommonHandler.instance()
-            .getSide()
-            .isClient()) {
-            return client.get()
-                .apply(param);
-        } else {
-            return server.get()
-                .apply(param);
-        }
-    }
 
     public static void runForSide(Supplier<Runnable> client, Supplier<Runnable> server) {
         if (FMLCommonHandler.instance()

@@ -161,7 +161,6 @@ public class ShadowPagingRegion<K extends IKey<K>> implements IRegion<K> {
         Lock mainLock = dataLock.writeLock();
         sectorLock.lock();
         mainLock.lock();
-        // entries.forEach((k, v) -> CubicChunks.LOGGER.error(this + ": WRITE: " + k + ", " + v.remaining()));
         try {
             // first pass: reserve header locations:
             reserveHeaderEntriesPass(entries, exceptions, pendingHeaderUpdates, entryLocationsToUse, sharedLocations);
@@ -345,14 +344,12 @@ public class ShadowPagingRegion<K extends IKey<K>> implements IRegion<K> {
 
     @Override
     public Optional<ByteBuffer> readValue(K key) throws IOException {
-
         Lock sectorLock = reserveSectorsLock.readLock();
         Lock mainLock = dataLock.readLock();
         boolean mainLocked = false;
         try {
             sectorLock.lock();
 
-            // CubicChunks.LOGGER.error(this + ": READ: " + key);
             Function<K, ByteBuffer> specialValue = sectorTracker.trySpecialValue(key)
                 .orElse(null);
             if (specialValue != null) {
@@ -457,7 +454,6 @@ public class ShadowPagingRegion<K extends IKey<K>> implements IRegion<K> {
 
     @Override
     public void flush() throws IOException {
-        // CubicChunks.bigWarning(this + ": FLUSH!!!");
         reserveSectorsLock.writeLock()
             .lock();
         dataLock.writeLock()
@@ -483,7 +479,6 @@ public class ShadowPagingRegion<K extends IKey<K>> implements IRegion<K> {
 
     @Override
     public void close() throws IOException {
-        // CubicChunks.bigWarning(this + ": CLOSE!!!");
         reserveSectorsLock.writeLock()
             .lock();
         dataLock.writeLock()
@@ -739,10 +734,6 @@ public class ShadowPagingRegion<K extends IKey<K>> implements IRegion<K> {
             return this.usedSectors.length();
         }
 
-        private boolean isSectorFree(int sector) {
-            return !usedSectors.get(sector);
-        }
-
         public static <L extends IKey<L>> SectorTracker<L> fromFile(SeekableByteChannel file,
             IKeyIdToSectorMap<?, ?, L> sectorMap, int reservedSectors, int sectorSize) throws IOException {
             // initialize usedSectors and make the header sectors as used
@@ -767,5 +758,4 @@ public class ShadowPagingRegion<K extends IKey<K>> implements IRegion<K> {
             return new SectorTracker<>(usedSectors, sectorMap, references);
         }
     }
-
 }

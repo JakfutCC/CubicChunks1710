@@ -21,7 +21,6 @@
 package com.cardinalstar.cubicchunks.api.worldgen.structure.feature;
 
 import com.cardinalstar.cubicchunks.api.XYZAddressable;
-import com.cardinalstar.cubicchunks.util.CubePos;
 
 /**
  * Interface implemented by
@@ -31,6 +30,4 @@ import com.cardinalstar.cubicchunks.util.CubePos;
 public interface ICubicFeatureStart extends XYZAddressable {
 
     int getChunkPosY();
-
-    CubePos getCubePos();
 }

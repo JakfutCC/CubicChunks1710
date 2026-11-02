@@ -12,8 +12,6 @@ import com.cardinalstar.cubicchunks.world.cube.Cube;
 
 public interface ICubeIO extends Flushable, Closeable {
 
-    boolean columnExists(ChunkCoordIntPair pos);
-
     boolean cubeExists(CubePos pos);
 
     /// Saves a column. With {@code unloading}, its data stays cached after the write, for a quick reload.
@@ -36,8 +34,6 @@ public interface ICubeIO extends Flushable, Closeable {
     NBTTagCompound loadColumn(ChunkCoordIntPair pos) throws LoadFailureException;
 
     NBTTagCompound loadCube(CubePos pos) throws LoadFailureException;
-
-    void preloadColumn(ChunkCoordIntPair pos);
 
     void preloadCube(CubePos pos, CubeInitLevel level);
 

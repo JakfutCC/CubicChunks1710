@@ -52,8 +52,6 @@ import com.cardinalstar.cubicchunks.server.chunkio.CubeInitLevel;
 import com.cardinalstar.cubicchunks.server.chunkio.CubeLoaderCallback;
 import com.cardinalstar.cubicchunks.util.Coords;
 import com.cardinalstar.cubicchunks.util.CubePos;
-import com.cardinalstar.cubicchunks.util.CubeStatusVisualizer;
-import com.cardinalstar.cubicchunks.util.CubeStatusVisualizer.CubeStatus;
 import com.cardinalstar.cubicchunks.util.HashSet2D;
 import com.cardinalstar.cubicchunks.visibility.EllipsoidalCubeSelector;
 import com.cardinalstar.cubicchunks.visibility.WorldVisibilityChange;
@@ -240,13 +238,6 @@ public class CubicPlayerManager extends PlayerManager implements CubeLoaderCallb
                 request.cancel();
             }
         }
-
-        CubeStatusVisualizer.put(cube.getCoords(), switch (newLevel) {
-            case None -> CubeStatus.None;
-            case Generated -> CubeStatus.Generated;
-            case Populated -> CubeStatus.Populated;
-            case Lit -> CubeStatus.Lit;
-        });
     }
 
     /**
@@ -271,8 +262,6 @@ public class CubicPlayerManager extends PlayerManager implements CubeLoaderCallb
         for (var player : players.getPlayerArray()) {
             player.sync.onCubeMarkedDirty(cube.getX(), cube.getY(), cube.getZ());
         }
-
-        CubeStatusVisualizer.remove(cube.getCoords());
     }
 
     // CHECKED: 1.10.2-12.18.1.2092
@@ -453,12 +442,6 @@ public class CubicPlayerManager extends PlayerManager implements CubeLoaderCallb
         return false;
     }
 
-    public boolean isColumnWatched(@Nullable Chunk column) {
-        if (column == null) return false;
-
-        return isColumnWatched(column.xPosition, column.zPosition);
-    }
-
     public boolean isCubeWatched(int cubeX, int cubeY, int cubeZ) {
         for (var player : players.getPlayerArray()) {
             if (player.isWatchingCube(cubeX, cubeY, cubeZ)) {
@@ -542,7 +525,6 @@ public class CubicPlayerManager extends PlayerManager implements CubeLoaderCallb
 
             applyWorldVisibilityChanges(player, delta);
         }
-
     }
 
     private void applyWorldVisibilityChanges(WatchingPlayer player, WorldVisibilityChange delta) {

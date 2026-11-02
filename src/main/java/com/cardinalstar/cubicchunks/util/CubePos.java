@@ -22,18 +22,13 @@ package com.cardinalstar.cubicchunks.util;
 
 import static com.cardinalstar.cubicchunks.util.Coords.*;
 
-import java.util.Random;
-import java.util.function.Consumer;
-
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.world.ChunkCoordIntPair;
 
-import com.cardinalstar.cubicchunks.api.ICube;
 import com.cardinalstar.cubicchunks.api.XYZAddressable;
-import com.gtnewhorizon.gtnhlib.blockpos.BlockPos;
 
 /**
  * Position of a cube.
@@ -51,8 +46,6 @@ import com.gtnewhorizon.gtnhlib.blockpos.BlockPos;
  */
 @ParametersAreNonnullByDefault
 public class CubePos implements Cloneable, XYZAddressable {
-
-    public static final CubePos ZERO = new CubePos(0, 0, 0);
 
     protected static final int Y_BITS = 20;
     protected static final int X_BITS = 22;
@@ -148,33 +141,6 @@ public class CubePos implements Cloneable, XYZAddressable {
                 | Bits.packSignedToLong(cubeZ, Z_BITS, Z_BIT_OFFSET));
     }
 
-    /**
-     * Gets the absolute position of the cube's center on the x axis.
-     *
-     * @return The x center of the cube.
-     */
-    public int getXCenter() {
-        return cubeX * ICube.SIZE + ICube.SIZE / 2;
-    }
-
-    /**
-     * Gets the absolute position of the cube's center on the y axis.
-     *
-     * @return The y center of the cube.
-     */
-    public int getYCenter() {
-        return cubeY * ICube.SIZE + ICube.SIZE / 2;
-    }
-
-    /**
-     * Gets the absolute position of the cube's center on the z axis.
-     *
-     * @return The z center of the cube.
-     */
-    public int getZCenter() {
-        return cubeZ * ICube.SIZE + ICube.SIZE / 2;
-    }
-
     public int getMinBlockX() {
         return Coords.cubeToMinBlock(cubeX);
     }
@@ -187,83 +153,15 @@ public class CubePos implements Cloneable, XYZAddressable {
         return Coords.cubeToMinBlock(cubeZ);
     }
 
-    public int getMaxBlockX() {
-        return Coords.cubeToMaxBlock(this.cubeX);
-    }
-
     public int getMaxBlockY() {
         return Coords.cubeToMaxBlock(this.cubeY);
-    }
-
-    public int getMaxBlockZ() {
-        return Coords.cubeToMaxBlock(this.cubeZ);
-    }
-
-    public BlockPos getCenterBlockPos() {
-        return new BlockPos(getXCenter(), getYCenter(), getZCenter());
-    }
-
-    public BlockPos getMinBlockPos() {
-        return new BlockPos(getMinBlockX(), getMinBlockY(), getMinBlockZ());
-    }
-
-    public BlockPos getMaxBlockPos() {
-        return new BlockPos(getMaxBlockX(), getMaxBlockY(), getMaxBlockZ());
-    }
-
-    public BlockPos localToBlock(int localX, int localY, int localZ) {
-        return new BlockPos(getMinBlockX() + localX, getMinBlockY() + localY, getMinBlockZ() + localZ);
-    }
-
-    public CubePos sub(int dx, int dy, int dz) {
-        return this.add(-dx, -dy, -dz);
-    }
-
-    public CubePos add(int dx, int dy, int dz) {
-        return new CubePos(getX() + dx, getY() + dy, getZ() + dz);
     }
 
     public ChunkCoordIntPair chunkPos() {
         return new ChunkCoordIntPair(getX(), getZ());
     }
 
-    public int distSquared(CubePos coords) {
-        int dx = coords.cubeX - this.cubeX;
-        int dy = coords.cubeY - this.cubeY;
-        int dz = coords.cubeZ - this.cubeZ;
-        return dx * dx + dy * dy + dz * dz;
-    }
-
-    public void forEachWithinRange(int range, Consumer<CubePos> action) {
-        for (int x = this.cubeX - range; x < this.cubeX + range; x++) {
-            for (int y = this.cubeY - range; y < this.cubeY + range; y++) {
-                for (int z = this.cubeZ - range; z < this.cubeZ + range; z++) {
-                    action.accept(new CubePos(x, y, z));
-                }
-            }
-        }
-    }
-
-    public BlockPos randomPopulationPos(Random rand) {
-        return new BlockPos(
-            rand.nextInt(ICube.SIZE) + getXCenter(),
-            rand.nextInt(ICube.SIZE) + getYCenter(),
-            rand.nextInt(ICube.SIZE) + getZCenter());
-    }
-
-    public CubePos above() {
-        return add(0, 1, 0);
-    }
-
-    public CubePos below() {
-        return add(0, -1, 0);
-    }
-
     public static CubePos fromBlockCoords(int blockX, int blockY, int blockZ) {
-        return new CubePos(blockToCube(blockX), blockToCube(blockY), blockToCube(blockZ));
-    }
-
-    public static CubePos fromEntityCoords(double blockX, double blockY, double blockZ) {
         return new CubePos(blockToCube(blockX), blockToCube(blockY), blockToCube(blockZ));
     }
 
@@ -271,21 +169,8 @@ public class CubePos implements Cloneable, XYZAddressable {
         return new CubePos(getCubeXForEntity(entity), getCubeYForEntity(entity), getCubeZForEntity(entity));
     }
 
-    public static CubePos fromBlockCoords(BlockPos pos) {
-        return CubePos.fromBlockCoords(pos.getX(), pos.getY(), pos.getZ());
-    }
-
-    public boolean containsBlock(BlockPos pos) {
-        return this.cubeX == blockToCube(pos.getX()) && this.cubeY == blockToCube(pos.getY())
-            && this.cubeZ == blockToCube(pos.getZ());
-    }
-
     public boolean containsBlock(int x, int y, int z) {
         return this.cubeX == blockToCube(x) && this.cubeY == blockToCube(y) && this.cubeZ == blockToCube(z);
-    }
-
-    public static CubePos unpack(long coord) {
-        return new CubePos(Coords.x(coord), Coords.y(coord), Coords.z(coord));
     }
 
     @Override

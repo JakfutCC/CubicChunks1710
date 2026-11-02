@@ -115,24 +115,6 @@ public class CubicChunkManager {
     }
 
     /**
-     * Reorganize the internal chunk list so that the chunk supplied is at the *end* of the list
-     * This helps if you wish to guarantee a certain "automatic unload ordering" for the chunks
-     * in the ticket list
-     *
-     * @param ticket The ticket holding the chunk list
-     * @param chunk  The chunk you wish to push to the end (so that it would be unloaded last)
-     */
-    public static void reorderChunk(ForgeChunkManager.Ticket ticket, CubePos chunk) {
-        if (ticket == null || chunk == null
-            || !((ICubicTicketInternal) ticket).requestedCubes()
-                .contains(chunk)) {
-            return;
-        }
-        ((ICubicTicketInternal) ticket).removeRequestedCube(chunk);
-        ((ICubicTicketInternal) ticket).addRequestedCube(chunk);
-    }
-
-    /**
      * Unforce the supplied chunk, allowing it to be unloaded and stop ticking.
      *
      * @param ticket The ticket holding the chunk

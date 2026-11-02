@@ -158,14 +158,6 @@ public class LightingManager implements ILightingManager {
     }
 
     @Override
-    public boolean hasPendingLightUpdates(ICube cube) {
-        if (CubicChunksConfig.disableLighting) {
-            return false;
-        }
-        return lightEngine.hasLightUpdates();
-    }
-
-    @Override
     public void onHeightUpdate(int x, int y, int z) {
         if (!world.isRemote) {
             CubicPlayerManager playerManager = getPlayerManager();

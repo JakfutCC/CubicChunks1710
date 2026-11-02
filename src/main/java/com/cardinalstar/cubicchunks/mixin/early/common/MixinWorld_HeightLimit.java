@@ -25,14 +25,11 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldProvider;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -62,17 +59,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 public abstract class MixinWorld_HeightLimit implements ICubicWorld {
 
     @Shadow
-    public int skylightSubtracted;
-
-    @Shadow
     public boolean isRemote;
-
-    @Shadow
-    @Final
-    public WorldProvider provider;
-
-    @Shadow
-    public abstract Block getBlock(int x, int y, int z);
 
     @Shadow
     protected abstract boolean chunkExists(int x, int z);
@@ -329,75 +316,6 @@ public abstract class MixinWorld_HeightLimit implements ICubicWorld {
         return getMaxHeight();
     }
 
-    // /**
-    // * @param pos block positionn
-    // * @return light value at the given position
-    // *
-    // * @author Barteks2x
-    // * @reason Replace {@link World#getLight(BlockPos)} with method that works outside of 0..255 height range. It
-    // would
-    // * be possible to fix it using @Redirect and @ModifyConstant but this way is much cleaner, especially for simple
-    // * method. A @{@link ModifyConstant} wouldn't work because it can't replace comparison to 0. This is because there
-    // * is a special instruction to compare something to 0, so the constant is never used.
-    // * <p>
-    // * Note: The getLight method is used in parts of game logic and entity rendering code. Doesn't directly affect
-    // block
-    // * rendering.
-    // */
-    // @Overwrite
-    // public int getFullBlockLightValue(BlockPos pos) {
-    // if (pos.getY() < this.getMinHeight()) {
-    // return 0;
-    // }
-    // if (pos.getY() >= this.getMaxHeight()) {
-    // //CubicChunks edit
-    // //return default light value above maxHeight instead of the same value as at maxHeight
-    // return EnumSkyBlock.SKY.defaultLightValue;
-    // //CubicChunks end
-    // }
-    // return this.getChunk(pos).getLightSubtracted(pos, 0);
-    // }
-    //
-    // /**
-    // * This getLight method is used in parts of game logic and entity rendering code.
-    // * Doesn't directly affect block rendering.
-    // */
-    // @Group(name = "getLightHeightOverride", max = 4)
-    // @ModifyConstant(
-    // method = "getLight(Lnet/minecraft/util/math/BlockPos;Z)I",
-    // constant = @Constant(intValue = 0, expandZeroConditions = Constant.Condition.LESS_THAN_ZERO, ordinal = 0),
-    // slice = @Slice(
-    // from = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/BlockPos;getY()I"),
-    // to = @At(value = "INVOKE",
-    // target =
-    // "Lnet/minecraft/world/World;getChunk(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/world/chunk/Chunk;")
-    // ))
-    // private int getLightGetYReplace(int zero) {
-    // return getMinHeight();
-    // }
-    //
-    // /**
-    // * Modify constant 255 in {@link World#getLight(BlockPos)} used in case tha height check didn't pass.
-    // * When max height is exceeded vanilla clamps the value to 255 (maxHeight - 1 = actual max allowed block Y).
-    // */
-    // @Group(name = "getLightHeightOverride")
-    // @ModifyConstant(method = "getLight(Lnet/minecraft/util/math/BlockPos;Z)I",
-    // constant = {@Constant(intValue = 255), @Constant(intValue = 256)}, require = 2)
-    // private int getLightGetReplacementYTooHigh(int original) {
-    // return this.getMaxHeight() + original - 256;
-    // }
-    //
-    // /**
-    // * Redirect 0 constant in getLightFor(EnumSkyBlock, BlockPos)
-    // * so that getLightFor returns light at y=minHeight when below minHeight.
-    // */
-    // @Group(name = "getLightForHeightOverride", min = 2, max = 2)
-    // @ModifyConstant(method = "getLightFor",
-    // constant = @Constant(intValue = 0, expandZeroConditions = Constant.Condition.LESS_THAN_ZERO))
-    // private int getLightForGetMinYReplace(int origY) {
-    // return this.getMinHeight();
-    // }
-
     /**
      * Conditionally replaces isAreaLoaded with Cubic Chunks implementation
      * (continues with vanilla code if it's not a cubic chunks world).
@@ -442,56 +360,6 @@ public abstract class MixinWorld_HeightLimit implements ICubicWorld {
 
         return this.cubeExists(x, y, z);
     }
-
-    // TODO FIX
-    // private int updateEntities_enityChunkBlockY;
-    //
-    // @Inject(method = "updateEntities",
-    // at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;chunkExists(II)Z", ordinal = 0),
-    // locals = LocalCapture.CAPTURE_FAILHARD,
-    // require = 1)
-    // private void updateEntities_chunkExists0_getLocals(CallbackInfo cbi, int i, Entity entity, int chunkX, int
-    // chunkZ) {
-    // updateEntities_enityChunkBlockY = cubeToMinBlock(entity.chunkCoordY);
-    // }
-    //
-    // @Inject(method = "updateEntities",
-    // at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;chunkExists(II)Z", ordinal = 1),
-    // locals = LocalCapture.CAPTURE_FAILHARD,
-    // require = 1)
-    // private void updateEntities_chunkExists1_getLocals(CallbackInfo ci, int i, Entity entity, int chunkX, CrashReport
-    // crashreport, CrashReportCategory crashreportcategory, int chunkZ) {
-    // updateEntities_enityChunkBlockY = cubeToMinBlock(entity.chunkCoordY);
-    // }
-    //
-    // @Inject(method = "updateEntities",
-    // at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;chunkExists(II)Z", ordinal = 2),
-    // locals = LocalCapture.CAPTURE_FAILHARD,
-    // require = 1)
-    // private void updateEntities_chunkExists2_getLocals(CallbackInfo cbi, int i, Entity entity, int chunkX,
-    // CrashReport crashreport, CrashReportCategory crashreportcategory, int chunkZ) {
-    // updateEntities_enityChunkBlockY = cubeToMinBlock(entity.chunkCoordY);
-    // }
-    //
-    // @Inject(method = "updateEntities",
-    // at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;chunkExists(II)Z", ordinal = 3),
-    // locals = LocalCapture.CAPTURE_FAILHARD,
-    // require = 1)
-    // private void updateEntities_chunkExists3_getLocals(CallbackInfo cbi, int i, Entity entity, int chunkX,
-    // CrashReport crashreport, CrashReportCategory crashreportcategory, int chunkZ) {
-    // updateEntities_enityChunkBlockY = cubeToMinBlock(entity.chunkCoordY);
-    // }
-    //
-    // @Redirect(method = "updateEntities",
-    // at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;chunkExists(II)Z", ordinal = 1))
-    // private boolean updateEntities_chunkExists(World world, int chunkX, int chunkZ) {
-    // assert this == (Object) world;
-    // if (isCubicWorld()) {
-    // return this.blockExists(cubeToMinBlock(chunkX), updateEntities_enityChunkBlockY, cubeToMinBlock(chunkZ));
-    // } else {
-    // return this.chunkExists(chunkX, chunkZ);
-    // }
-    // }
 
     // TODO If we want 3D biomes this needs to get Y as well. I don't think this will be good for compat.
     // @Inject(method = "getBiomeGenForCoords", at = @At("HEAD"), cancellable = true)

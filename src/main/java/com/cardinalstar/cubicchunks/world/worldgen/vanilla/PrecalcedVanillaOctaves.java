@@ -26,15 +26,9 @@ public class PrecalcedVanillaOctaves extends NoiseGeneratorOctaves implements Pr
     private long elapsed;
     private long lastMessage = System.nanoTime();
 
-    private final ObjectPooler<NoiseData> dataPool = new ObjectPooler<>(NoiseData::new, null, 1024);
+    private final ObjectPooler<NoiseData> dataPool = new ObjectPooler<>(NoiseData::new);
 
     private final Object paramLock = new Object();
-
-    // private final Cache<TaskKey, NoiseData> cache = CacheBuilder.newBuilder()
-    // .expireAfterWrite(5, TimeUnit.MINUTES)
-    // .maximumSize(8192)
-    // .removalListener(notification -> releaseData((NoiseData) notification.getValue()))
-    // .build();
 
     private final Long2ObjectLinkedOpenHashMap<NoiseData> cache = new Long2ObjectLinkedOpenHashMap<>();
 
@@ -162,14 +156,6 @@ public class PrecalcedVanillaOctaves extends NoiseGeneratorOctaves implements Pr
         }
     }
 
-    private void releaseData(NoiseData data) {
-        synchronized (dataPool) {
-            if (!data.matches()) return;
-
-            dataPool.releaseInstance(data);
-        }
-    }
-
     @Override
     public void precalculate(int blockX, int blockY, int blockZ) {
         Task3D task;
@@ -187,9 +173,7 @@ public class PrecalcedVanillaOctaves extends NoiseGeneratorOctaves implements Pr
 
     @Desugar
 
-    private record TaskKey(int x, int y, int z) {
-
-    }
+    private record TaskKey(int x, int y, int z) {}
 
     private class Task3D {
 
@@ -249,10 +233,6 @@ public class PrecalcedVanillaOctaves extends NoiseGeneratorOctaves implements Pr
 
         final void put(int x, int y, int z, double value) {
             data[index(x, y, z)] = value;
-        }
-
-        public final double sample(int x, int y, int z) {
-            return data[index(x, y, z)];
         }
 
         private int index(int x, int y, int z) {

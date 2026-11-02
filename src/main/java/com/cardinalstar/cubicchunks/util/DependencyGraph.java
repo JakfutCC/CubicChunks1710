@@ -97,38 +97,6 @@ public class DependencyGraph<T> implements IDependencyGraph<T> {
         cachedSorted = null;
     }
 
-    @Override
-    public void addDependency(String object, String dependsOn, boolean optional) {
-        Objects.requireNonNull(object, "object must not be null");
-        Objects.requireNonNull(dependsOn, "dependsOn must not be null");
-
-        dependencies.put(object, new DepInfo(dependsOn, optional));
-        cachedSorted = null;
-    }
-
-    @Override
-    public boolean removeDependency(String object, String dependsOn) {
-        Objects.requireNonNull(object, "object must not be null");
-        Objects.requireNonNull(dependsOn, "dependsOn must not be null");
-
-        boolean successful = dependencies.remove(object, new DepInfo(dependsOn, false));
-        cachedSorted = null;
-
-        return successful;
-    }
-
-    @Override
-    public void addTarget(String targetName, String... deps) {
-        Objects.requireNonNull(targetName, "targetName must not be null");
-
-        objects.put(targetName, Optional.empty());
-        targets.add(targetName);
-
-        for (String dep : deps) {
-            addUnparsedDependency(targetName, dep);
-        }
-    }
-
     /// Not made public because there is no well-defined initialization timing.
     @Nullable
     public Optional<T> get(String name) {

@@ -29,7 +29,6 @@ import cpw.mods.fml.common.eventhandler.IEventExceptionHandler;
 @Mixin(EventBus.class)
 public interface IEventBus {
 
-    // @Accessor(remap = false) boolean isShutdown();
     @Accessor(remap = false)
     int getBusID();
 

@@ -104,9 +104,6 @@ public abstract class MixinWorldServer extends MixinWorld implements ICubicWorld
     private final CubeSplitTicks cc$cubeTicks = new CubeSplitTicks();
 
     @Shadow
-    public abstract PlayerManager getPlayerManager();
-
-    @Shadow
     public ChunkProviderServer theChunkProviderServer;
 
     @Redirect(
@@ -241,18 +238,6 @@ public abstract class MixinWorldServer extends MixinWorld implements ICubicWorld
         return cc$forcedCubes;
     }
 
-    @Override
-    public XZMap<IColumn> getForcedColumns() {
-        return cc$forcedColumns;
-    }
-
-    @Override
-    public void unloadOldCubes() {
-        this.getCubeCache()
-            .getCubeLoader()
-            .doGC();
-    }
-
     /**
      * CubicChunks equivalent of {@link ForgeChunkManager#forceChunk(ForgeChunkManager.Ticket, ChunkCoordIntPair)}.
      *
@@ -261,16 +246,6 @@ public abstract class MixinWorldServer extends MixinWorld implements ICubicWorld
     @Override
     public void forceChunk(ForgeChunkManager.Ticket ticket, CubePos cube) {
         CubicChunkManager.forceChunk(ticket, cube);
-    }
-
-    /**
-     * CubicChunks equivalent of {@link ForgeChunkManager#reorderChunk(ForgeChunkManager.Ticket, ChunkCoordIntPair)}
-     *
-     * Can accept tickets from different worlds.
-     */
-    @Override
-    public void reorderChunk(ForgeChunkManager.Ticket ticket, CubePos chunk) {
-        CubicChunkManager.reorderChunk(ticket, chunk);
     }
 
     /**
