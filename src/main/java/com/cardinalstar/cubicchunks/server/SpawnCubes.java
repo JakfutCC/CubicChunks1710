@@ -40,9 +40,6 @@ import com.cardinalstar.cubicchunks.world.cube.ICubeProviderInternal;
 @ParametersAreNonnullByDefault
 public class SpawnCubes implements ITicket {
 
-    private int spawnX;
-    private int spawnY;
-    private int spawnZ;
     private int radiusXZGenerate = CubicChunksConfig.spawnGenerateDistanceXZ;
     private int radiusYGenerate = CubicChunksConfig.spawnGenerateDistanceY;
     private int radiusXZForce = CubicChunksConfig.spawnLoadDistanceXZ;

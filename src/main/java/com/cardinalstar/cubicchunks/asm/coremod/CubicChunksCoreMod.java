@@ -71,10 +71,6 @@ public class CubicChunksCoreMod implements IFMLLoadingPlugin, IEarlyMixinLoader 
 
     }
 
-    public CubicChunksCoreMod() {
-        // initMixin();
-    }
-
     @Override
     public String[] getASMTransformerClass() {
         return new String[] { "com.cardinalstar.cubicchunks.asm.transformer.AddEmptyConstructorToChunk" };
@@ -100,17 +96,6 @@ public class CubicChunksCoreMod implements IFMLLoadingPlugin, IEarlyMixinLoader 
     public String getAccessTransformerClass() {
         return null;
     }
-
-    // public static void initMixin() {
-    // MixinBootstrap.init();
-    // Mixins.addConfiguration("cubicchunks.mixins.core.json");
-    // Mixins.addConfiguration("cubicchunks.mixins.core_sided.vanilla.json");
-    // Mixins.addConfiguration("cubicchunks.mixins.fixes.json");
-    // Mixins.addConfiguration("cubicchunks.mixins.selectable.json");
-    // Mixins.addConfiguration("cubicchunks.mixins.noncritical.json");
-    // MixinEnvironment.getDefaultEnvironment().registerTokenProviderClass(
-    // "io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod$TokenProvider");
-    // }
 
     @Override
     public String getMixinConfig() {

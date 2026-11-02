@@ -27,7 +27,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -44,18 +43,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 public abstract class MixinWorld_Tick implements ICubicWorld {
 
     @Shadow
-    @Final
-    public boolean isRemote;
-
-    @Shadow
     public abstract boolean checkChunksExist(int x1, int y1, int z1, int x2, int y2, int z2);
-
-    // //TODO: handle private isAreaLoaded correctly
-    // @Shadow private boolean isAreaLoaded(int x1, int y1, int z1, int x2, int y2, int z2) {
-    // throw new Error();
-    // }
-
-    // @Shadow public abstract boolean isValid(BlockPos pos);
 
     /**
      * Redirect {@code isAreaLoaded} here, to use Y coordinate of the entity.
@@ -69,7 +57,6 @@ public abstract class MixinWorld_Tick implements ICubicWorld {
         require = 1)
     private boolean canUpdateEntity(World _this, int startBlockX, int oldStartBlockY, int startBlockZ, int endBlockX,
         int oldEndBlockY, int endBlockZ, @Local(argsOnly = true) Entity entity) {
-
         // Prevent player rubberbanding
         if (entity instanceof EntityPlayer) return true;
 

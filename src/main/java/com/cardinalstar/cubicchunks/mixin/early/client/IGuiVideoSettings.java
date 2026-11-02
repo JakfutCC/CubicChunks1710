@@ -27,7 +27,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(GuiVideoSettings.class)
-public interface IGuiVideoSettings extends IGuiScreen {
+public interface IGuiVideoSettings {
 
     @Accessor
     GuiListExtended getOptionsRowList();

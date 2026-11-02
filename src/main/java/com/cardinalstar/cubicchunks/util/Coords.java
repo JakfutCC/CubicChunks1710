@@ -21,32 +21,17 @@
 
 package com.cardinalstar.cubicchunks.util;
 
-import java.util.Random;
-
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.util.MathHelper;
 
-import com.cardinalstar.cubicchunks.api.ICube;
-
 @ParametersAreNonnullByDefault
 public class Coords {
 
     public static final int NO_HEIGHT = Integer.MIN_VALUE + 32;
-    /**
-     * Each {@link ICube} optionally contain 8x1x8 map of biome IDs, or 2x16x2 block wide biome
-     * areas.
-     */
     public static final int BIOMES_PER_CUBE = 8 * 1 * 8;
     private static final long XZ_INT = 0xFFFFFFFFL;
-
-    // public static BlockPos midPos(BlockPos p1, BlockPos p2) {
-    // //bitshifting each number and then adding the result - this rounds the number down and prevents overflow
-    // return new BlockPos((p1.getX() >> 1) + (p2.getX() >> 1) + (p1.getX() & p2.getX() & 1),
-    // (p1.getY() >> 1) + (p2.getY() >> 1) + (p1.getY() & p2.getY() & 1),
-    // (p1.getZ() >> 1) + (p2.getZ() >> 1) + (p1.getZ() & p2.getZ() & 1));
-    // }
 
     public static int blockToLocal(int val) {
         return val & 0xf;
@@ -109,51 +94,8 @@ public class Coords {
         return blockToCube(MathHelper.floor_double(entity.posY));
     }
 
-    // public static BlockPos getCubeCenter(ICube cube) {
-    // return new BlockPos(
-    // cubeToMinBlock(cube.getX()) | 8,
-    // cubeToMinBlock(cube.getY()) | 8,
-    // cubeToMinBlock(cube.getZ()) | 8
-    // );
-    // }
-
     public static int blockToCube(double blockPos) {
         return blockToCube(MathHelper.floor_double(blockPos));
-    }
-
-    public static int cubeToCenterBlock(int cubeVal) {
-        return localToBlock(cubeVal, ICube.SIZE / 2);
-    }
-
-    /**
-     * Returns the minimum coordinate inside the population area this coordinate is in
-     *
-     * @param coord the coordinate
-     * @return the minimum coordinate for population area
-     */
-    public static int getMinCubePopulationPos(int coord) {
-        return localToBlock(blockToCube(coord - ICube.SIZE / 2), ICube.SIZE / 2);
-    }
-
-    /**
-     * Return a seed for random number generation, based on initial seed and 3 coordinates.
-     *
-     * @param seed the world seed
-     * @param x    the x coordinate
-     * @param y    the y coordinate
-     * @param z    the zPosition coordinate
-     * @return A seed value based on world seed, x, y and zPosition coordinates
-     */
-    public static long coordsSeedHash(long seed, int x, int y, int z) {
-        long hash = 3;
-        hash = 41 * hash + seed;
-        hash = 41 * hash + x;
-        hash = 41 * hash + y;
-        return 41 * hash + z;
-    }
-
-    public static Random coordsSeedRandom(long seed, int x, int y, int z) {
-        return new Random(coordsSeedHash(seed, x, y, z));
     }
 
     public static final long MASK = 0b111111111111111111111;

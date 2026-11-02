@@ -183,18 +183,8 @@ public class HashMap2D<V> extends Long2ObjectOpenHashMap<V> {
 
         public Entry2D() {}
 
-        /// @deprecated Use [#Entry2D(long, Object)] to avoid the long boxing.
-        @Deprecated
-        public Entry2D(Long key, T value) {
-            super(key, value);
-        }
-
         public Entry2D(long key, T value) {
             super(key, value);
-        }
-
-        public Entry2D(int posX, int posZ, T value) {
-            super(Coords.packChunk(posX, posZ), value);
         }
 
         void setKey(long key) {

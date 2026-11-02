@@ -29,8 +29,6 @@ import com.cardinalstar.cubicchunks.CubicChunks;
 import com.cardinalstar.cubicchunks.client.CubeProviderClient;
 import com.cardinalstar.cubicchunks.network.PacketEncoderCube.PacketCube;
 import com.cardinalstar.cubicchunks.util.CubePos;
-import com.cardinalstar.cubicchunks.util.CubeStatusVisualizer;
-import com.cardinalstar.cubicchunks.util.CubeStatusVisualizer.CubeStatus;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
 import com.github.bsideup.jabel.Desugar;
 
@@ -53,7 +51,6 @@ public class PacketEncoderCube extends CCPacketEncoder<PacketCube> {
     public PacketEncoderCube() {}
 
     public static PacketCube createPacket(Cube cube) {
-        CubeStatusVisualizer.put(cube.getCoords(), CubeStatus.Synced);
 
         // only the written bytes are copied out, so the pooled buffer is released right away
         ByteBuf cubeData = PooledByteBufAllocator.DEFAULT.buffer();

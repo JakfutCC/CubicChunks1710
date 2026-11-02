@@ -33,7 +33,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import com.cardinalstar.cubicchunks.api.worldgen.structure.feature.ICubicFeatureStart;
-import com.cardinalstar.cubicchunks.util.CubePos;
 
 @Mixin(StructureStart.class)
 public abstract class MixinStructureStart implements ICubicFeatureStart {
@@ -49,11 +48,6 @@ public abstract class MixinStructureStart implements ICubicFeatureStart {
     @Override
     public int getChunkPosY() {
         return this.cubeY;
-    }
-
-    @Override
-    public CubePos getCubePos() {
-        return new CubePos(getX(), getY(), getZ());
     }
 
     @Inject(

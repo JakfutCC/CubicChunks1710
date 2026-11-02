@@ -45,7 +45,6 @@ import com.cardinalstar.cubicchunks.async.TaskPool;
 import com.cardinalstar.cubicchunks.event.handlers.ClientEventHandler;
 import com.cardinalstar.cubicchunks.event.handlers.CommonEventHandler;
 import com.cardinalstar.cubicchunks.network.NetworkChannel;
-import com.cardinalstar.cubicchunks.server.ICubicChunksServer;
 import com.cardinalstar.cubicchunks.server.chunkio.RegionCubeStorage;
 import com.cardinalstar.cubicchunks.util.CompatHandler;
 import com.cardinalstar.cubicchunks.util.Mods;
@@ -77,7 +76,6 @@ import cpw.mods.fml.relauncher.Side;
 @Mod(modid = CubicChunks.MODID, useMetadata = true, dependencies = "required-after:RegionLib;")
 public class CubicChunks {
 
-    public static final int MAX_RENDER_DISTANCE = 64;
     public static final VersionRange SUPPORTED_SERVER_VERSIONS;
     public static final VersionRange SUPPORTED_CLIENT_VERSIONS;
 
@@ -95,8 +93,6 @@ public class CubicChunks {
     public static final int MIN_SUPPORTED_BLOCK_Y = Integer.MIN_VALUE + 4096;
     public static final int MAX_SUPPORTED_BLOCK_Y = Integer.MAX_VALUE - 4095;
 
-    public static final boolean DEBUG_ENABLED = System.getProperty("cubicchunks.debug", "false")
-        .equalsIgnoreCase("true");
     public static final String MODID = "cubicchunks";
 
     @Nonnull
@@ -195,7 +191,6 @@ public class CubicChunks {
         SideUtils.runForSide(() -> () -> {
             MinecraftServer server = event.getServer();
             server.setBuildLimit(CubicChunks.MAX_SUPPORTED_BLOCK_Y);
-            ((ICubicChunksServer) server).setBuildMinimum(CubicChunks.MIN_SUPPORTED_BLOCK_Y);
         }, () -> () -> {
             // no-op, done by mixin
         });

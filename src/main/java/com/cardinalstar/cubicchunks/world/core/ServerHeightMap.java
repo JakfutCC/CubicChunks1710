@@ -65,8 +65,6 @@ public class ServerHeightMap implements IHeightMap {
     @Nonnull
     private final int[][] segments;
 
-    private int heightMapLowest;
-
     public ServerHeightMap(int[] heightmap) {
         this.ymin = new int[Cube.SIZE * Cube.SIZE];
         this.ymax = new HeightMap(heightmap);
@@ -79,7 +77,6 @@ public class ServerHeightMap implements IHeightMap {
             this.ymax.set(i, Coords.NO_HEIGHT);
         }
 
-        this.heightMapLowest = Coords.NO_HEIGHT;
     }
 
     private static int getOpacity(int segmentIndex) {
@@ -123,104 +120,11 @@ public class ServerHeightMap implements IHeightMap {
             this.setOpacityWithSegments(xzIndex, blockY, isOpaque);
         }
 
-        this.heightMapLowest = Coords.NO_HEIGHT;
     }
 
     @Override
     public int getTopBlockY(int localX, int localZ) {
         return this.ymax.get(getIndex(localX, localZ));
-    }
-
-    @Override
-    public int getTopBlockYBelow(int localX, int localZ, int blockY) {
-
-        // within the highest segment or there exists no segment for this block column
-        int i = getIndex(localX, localZ);
-        if (blockY > this.ymax.get(i)) {
-            return this.getTopBlockY(localX, localZ);
-        }
-
-        // below or at the minimum height, thus there are no blocks below
-        if (blockY <= this.ymin[i]) {
-            return Coords.NO_HEIGHT;
-        }
-
-        // There are no opacity changes, everything is opaque from ymin to ymax. blockY is between ymin and ymax, thus
-        // the next opaque block below blockY is blockY - 1.
-        int[] segments = this.segments[i];
-        if (segments == null) {
-            return blockY - 1;
-        }
-
-        // binary search for the segment containing blockY
-        int mini = 0;
-        int maxi = getLastSegmentIndex(segments);
-        while (mini <= maxi) {
-            int midi = (mini + maxi) >>> 1;
-            int midPos = segments[midi];
-
-            if (midPos < blockY) {
-                mini = midi + 1;
-            } else if (midPos > blockY) {
-                maxi = midi - 1;
-            } else {
-                // hit a segment start exactly
-                mini = midi + 1;
-                break;
-            }
-        }
-
-        assert (mini > 0) : String.format("can't find %d in %s", blockY, dump(localX, localZ));
-
-        // The binary search ends on answer + 1, so subtract 1. The result is the index of the segment containing
-        // blockY.
-        int segmentIndex = mini - 1;
-        if (segmentIndex < 0) {
-            return Coords.NO_HEIGHT;
-        }
-        int blockYSegment = segments[segmentIndex];
-        int blockYSegmentOpacity = getOpacity(segmentIndex);
-
-        // The lowest segment is always opaque. Thus, if blockY is in the lowest segment, the next opaque block is
-        // at blockY - 1.
-        if (segmentIndex == 0) {
-            assert blockYSegmentOpacity != 0 : "The bottom opacity segment is transparent!";
-            return blockY - 1;
-        }
-
-        // Otherwise, there exists a segment underneath the segment of blockY.
-
-        // If the segment of blockY is transparent, the next opaque block is at the top of the segment underneath.
-        if (blockYSegmentOpacity == 0) {
-            return blockYSegment - 1;
-        }
-
-        // The segment of blockY is opaque, thus, if blockY is not at the bottom of its segment, the next opaque block
-        // is at blockY - 1.
-        if (blockY != blockYSegment) {
-            return blockY - 1;
-        }
-
-        // If blockY is the lowest block in its segment, the next opaque block is the highest block in the next opaque
-        // segment.
-        int belowYSegment = segments[segmentIndex - 1];
-        return belowYSegment - 1;
-    }
-
-    @Override
-    public int getLowestTopBlockY() {
-        if (this.heightMapLowest == Coords.NO_HEIGHT) {
-            this.heightMapLowest = Integer.MAX_VALUE;
-            for (int i = 0; i < Cube.SIZE * Cube.SIZE; i++) {
-                if (this.ymax.get(i) < this.heightMapLowest) {
-                    this.heightMapLowest = this.ymax.get(i);
-                }
-            }
-            if (this.heightMapLowest == Coords.NO_HEIGHT) {
-                this.heightMapLowest--; // don't recalculate this on every call
-            }
-        }
-        return this.heightMapLowest;
     }
 
     // Helper ----------------------------------------------------------------------------------------------------------
@@ -234,7 +138,6 @@ public class ServerHeightMap implements IHeightMap {
     }
 
     private void setNoSegmentsOpaque(int xzIndex, int blockY) {
-
         // something from nothing?
         if (this.ymin[xzIndex] == Coords.NO_HEIGHT && this.ymax.get(xzIndex) == Coords.NO_HEIGHT) {
             this.ymin[xzIndex] = blockY;
@@ -321,7 +224,6 @@ public class ServerHeightMap implements IHeightMap {
 
         // only one block left?
         if (this.ymax.get(xzIndex) == this.ymin[xzIndex]) {
-
             // something into nothing?
             if (blockY == this.ymin[xzIndex]) {
                 this.ymin[xzIndex] = Coords.NO_HEIGHT;
@@ -557,13 +459,11 @@ public class ServerHeightMap implements IHeightMap {
     }
 
     private void negateOneBlockSegment(int xzIndex, int segmentIndexWithBlockY) {
-
         int[] segments = this.segments[xzIndex];
         int lastSegmentIndex = getLastSegmentIndex(segments);
 
         assert lastSegmentIndex >= 2 : "Less than 3 segments in array!";
         if (segmentIndexWithBlockY == lastSegmentIndex) {
-
             // the top segment must be opaque, so we set it to transparent
             // and the segment below it is also transparent.
             // set both of them to NONE and decrease maxY
@@ -617,7 +517,6 @@ public class ServerHeightMap implements IHeightMap {
     }
 
     private void moveSegmentStartUpAndUpdateMinY(int xzIndex, int segmentIndex) {
-
         // move the segment
         this.segments[xzIndex][segmentIndex] = this.segments[xzIndex][segmentIndex] + 1;
 
@@ -628,7 +527,6 @@ public class ServerHeightMap implements IHeightMap {
     }
 
     private void moveSegmentStartDownAndUpdateMinY(int xzIndex, int segmentIndex) {
-
         // move the segment
         this.segments[xzIndex][segmentIndex] = this.segments[xzIndex][segmentIndex] - 1;
 
@@ -639,7 +537,6 @@ public class ServerHeightMap implements IHeightMap {
     }
 
     private void removeTwoSegments(int xzIndex, int firstSegmentToRemove) {
-
         int[] segments = this.segments[xzIndex];
         int jmax = getLastSegmentIndex(segments);
 
@@ -769,28 +666,4 @@ public class ServerHeightMap implements IHeightMap {
     }
 
     // Debug -----------------------------------------------------------------------------------------------------------
-
-    public String dump(int localX, int localZ) {
-        int i = getIndex(localX, localZ);
-
-        StringBuilder buf = new StringBuilder();
-        buf.append("range=[");
-        buf.append(this.ymin[i]);
-        buf.append(",");
-        buf.append(this.ymax.get(i));
-        buf.append("], segments(p,o)=");
-
-        if (this.segments[i] != null) {
-            for (int pos : this.segments[i]) {
-                int opacity = getOpacity(i);
-                buf.append("(");
-                buf.append(pos);
-                buf.append(",");
-                buf.append(opacity);
-                buf.append(")");
-            }
-        }
-        return buf.toString();
-    }
-
 }

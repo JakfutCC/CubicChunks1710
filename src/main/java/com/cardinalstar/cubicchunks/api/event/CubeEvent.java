@@ -23,14 +23,10 @@ package com.cardinalstar.cubicchunks.api.event;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
 import net.minecraftforge.event.world.WorldEvent;
 
-import com.cardinalstar.cubicchunks.server.CubicPlayerManager;
 import com.cardinalstar.cubicchunks.util.CubePos;
-import com.cardinalstar.cubicchunks.world.ICubicWorld;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
-import com.cardinalstar.cubicchunks.world.cube.ICubeProvider;
 
 import lombok.Getter;
 
@@ -130,18 +126,6 @@ public class CubeEvent extends WorldEvent {
             this.cube = cube;
             this.player = player;
         }
-
-        public ICubicWorld getWorld() {
-            return (ICubicWorld) player.worldObj;
-        }
-
-        public CubicPlayerManager getPlayerManager() {
-            return (CubicPlayerManager) ((WorldServer) getWorld()).getPlayerManager();
-        }
-
-        public ICubeProvider getCubeProvider() {
-            return getWorld().getCubeCache();
-        }
     }
 
     /// Invoked on the server thread, when a player stops watching a cube.
@@ -153,18 +137,6 @@ public class CubeEvent extends WorldEvent {
         public UnWatch(World world, CubePos pos, EntityPlayerMP player) {
             super(world, pos);
             this.player = player;
-        }
-
-        public ICubicWorld getWorld() {
-            return (ICubicWorld) player.worldObj;
-        }
-
-        public CubicPlayerManager getPlayerManager() {
-            return (CubicPlayerManager) ((WorldServer) getWorld()).getPlayerManager();
-        }
-
-        public ICubeProvider getCubeProvider() {
-            return getWorld().getCubeCache();
         }
     }
 }

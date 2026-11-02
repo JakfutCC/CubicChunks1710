@@ -20,16 +20,13 @@
  */
 package com.cardinalstar.cubicchunks.world.cube;
 
-import static com.cardinalstar.cubicchunks.util.Coords.blockToCube;
 import static com.cardinalstar.cubicchunks.util.Coords.blockToLocal;
 import static com.cardinalstar.cubicchunks.util.Coords.cubeToMaxBlock;
 import static com.cardinalstar.cubicchunks.util.Coords.cubeToMinBlock;
-import static com.cardinalstar.cubicchunks.util.Coords.localToBlock;
 import static net.minecraftforge.common.MinecraftForge.EVENT_BUS;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +37,6 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
 import net.minecraft.crash.CrashReport;
 import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.entity.Entity;
@@ -68,8 +64,6 @@ import com.cardinalstar.cubicchunks.api.event.CubeEvent;
 import com.cardinalstar.cubicchunks.mixin.api.ICubicWorldInternal;
 import com.cardinalstar.cubicchunks.network.CCPacketBuffer;
 import com.cardinalstar.cubicchunks.server.CubicPlayerManager;
-import com.cardinalstar.cubicchunks.server.SpawnCubes;
-import com.cardinalstar.cubicchunks.util.AddressTools;
 import com.cardinalstar.cubicchunks.util.CompatHandler;
 import com.cardinalstar.cubicchunks.util.Coords;
 import com.cardinalstar.cubicchunks.util.CubePos;
@@ -77,9 +71,7 @@ import com.cardinalstar.cubicchunks.util.TicketList;
 import com.cardinalstar.cubicchunks.util.biome3d.DynamicBiomeArray;
 import com.cardinalstar.cubicchunks.world.ICubicWorld;
 import com.cardinalstar.cubicchunks.world.core.IColumnInternal;
-import com.cardinalstar.cubicchunks.world.core.ICubicTicketInternal;
 import com.cardinalstar.cubicchunks.world.cube.blockview.IBlockView;
-import com.gtnewhorizon.gtnhlib.blockpos.BlockPos;
 
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceArrayMap;
 
@@ -104,13 +96,6 @@ public class Cube implements ICube {
     private boolean isModified = false;
 
     public static final short POP_000 = 0b1;
-    // public static final short POP_100 = 0b10;
-    // public static final short POP_010 = 0b100;
-    // public static final short POP_110 = 0b1000;
-    // public static final short POP_001 = 0b10000;
-    // public static final short POP_101 = 0b100000;
-    // public static final short POP_011 = 0b1000000;
-    // public static final short POP_111 = 0b10000000;
     public static final short POP_ALL = 0b11111111;
     private short populationStatus = 0;
 
@@ -168,9 +153,6 @@ public class Cube implements ICube {
      * True only if all the blocks have been added to server height map. Always true clientside.
      */
     private boolean isSurfaceTracked = false;
-    private boolean ticked = false;
-
-    // private final CapabilityDispatcher capabilities;
 
     /**
      * Create a new cube in the specified column at the specified location. The newly created cube will only contain air
@@ -194,36 +176,6 @@ public class Cube implements ICube {
             .createLightData(this);
 
         this.storage = null;
-    }
-
-    /**
-     * Create a new cube at the specified location by copying blocks from a cube primer.
-     *
-     * @param column column of this cube
-     * @param cubeY  cube y position
-     * @param blocks primer containing the blocks for this cube
-     */
-    @SuppressWarnings("deprecation") // when a block is generated, does it really have any extra
-    // information it could give us about its opacity by knowing its location?
-    public Cube(Chunk column, int cubeY, Block[] blocks) {
-        this(column, cubeY);
-
-        boolean flag = !world.provider.hasNoSky;
-
-        for (int y = Cube.SIZE - 1; y >= 0; y--) {
-            for (int z = 0; z < Cube.SIZE; z++) {
-                for (int x = 0; x < Cube.SIZE; x++) {
-                    Block block = blocks[x << 11 | z << 7 | y];
-
-                    if (block != null && block.getMaterial() != Material.air) {
-                        if (this.storage == null) {
-                            this.storage = new ExtendedBlockStorage(cubeToMinBlock(cubeY), flag);
-                        }
-                        this.storage.func_150818_a(x, y, z, block);
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -287,13 +239,6 @@ public class Cube implements ICube {
     // ========Chunk vanilla methods=========
     // ======================================
 
-    @Override
-    public int getSavedLightValue(EnumSkyBlock lightType, int x, int y, int z) {
-        ((ICubicWorldInternal) world).getLightingManager()
-            .onGetLight(lightType, x, y, z);
-        return getCachedLightFor(lightType, x, y, z);
-    }
-
     public int getCachedLightFor(EnumSkyBlock type, int xPos, int yPos, int zPos) {
         int x = blockToLocal(xPos);
         int y = blockToLocal(yPos);
@@ -319,27 +264,6 @@ public class Cube implements ICube {
     @Override
     public void setLightFor(EnumSkyBlock lightType, int x, int y, int z, int light) {
         column.setLightValue(lightType, Coords.blockToLocal(x), y, Coords.blockToLocal(z), light);
-    }
-
-    /**
-     * Create a tile entity at the given position if the block is able to hold one
-     *
-     * @param x x position where the tile entity should be placed
-     * @param y y position where the tile entity should be placed
-     * @param z zPosition position where the tile entity should be placed
-     * @return the created tile entity, or <code>null</code> if the block at that position does not provide tile
-     *         entities
-     */
-    @Override
-    @Nullable
-    public TileEntity getBlockTileEntityInChunk(int x, int y, int z) {
-        Block block = this.getBlock(x, y, z);
-        int meta = this.getBlockMetadata(x, y, z);
-
-        if (block.hasTileEntity(meta)) {
-            return block.createTileEntity(this.world, meta);
-        }
-        return null;
     }
 
     /**
@@ -463,14 +387,6 @@ public class Cube implements ICube {
         return storage == null || this.storage.isEmpty();
     }
 
-    @Override
-    public BlockPos localAddressToBlockPos(int localAddress) {
-        int x = localToBlock(this.coords.getX(), AddressTools.getLocalX(localAddress));
-        int y = localToBlock(this.coords.getY(), AddressTools.getLocalY(localAddress));
-        int z = localToBlock(this.coords.getZ(), AddressTools.getLocalZ(localAddress));
-        return new BlockPos(x, y, z);
-    }
-
     @SuppressWarnings("unchecked")
     public <T extends World & ICubicWorld> T getWorld() {
         return (T) this.world;
@@ -500,12 +416,6 @@ public class Cube implements ICube {
     @Override
     public CubePos getCoords() {
         return this.coords;
-    }
-
-    @Override
-    public boolean containsCoordinate(int x, int y, int z) {
-        return this.coords.getX() == blockToCube(x) && this.coords.getY() == blockToCube(y)
-            && this.coords.getZ() == blockToCube(z);
     }
 
     @Override
@@ -592,11 +502,6 @@ public class Cube implements ICube {
         this.entities.add(entity);
     }
 
-    @Override
-    public boolean removeEntity(Entity entity) {
-        return this.entities.remove(entity);
-    }
-
     public List<Entity> getEntityContainer() {
         return this.entities;
     }
@@ -631,7 +536,6 @@ public class Cube implements ICube {
 
         for (int x = 0; x < Cube.SIZE; x++) {
             for (int z = 0; z < Cube.SIZE; z++) {
-
                 for (int y = Cube.SIZE - 1; y >= 0; y--) {
                     Block newBlock = this.getBlock(x, y, z);
 
@@ -739,7 +643,6 @@ public class Cube implements ICube {
         this.populationStatus = POP_ALL;
         this.isInitialLightingDone = true;
         this.isSurfaceTracked = true;
-        this.ticked = true;
     }
 
     public short getPopulationStatus() {
@@ -794,41 +697,9 @@ public class Cube implements ICube {
         this.isModified = true;
     }
 
-    public void setCubeLoaded() {
-        this.isCubeLoaded = true;
-    }
-
     @Override
     public boolean isCubeLoaded() {
         return this.isCubeLoaded;
-    }
-
-    @Override
-    public boolean hasLightUpdates() {
-        return ((ICubicWorldInternal) world).getLightingManager()
-            .hasPendingLightUpdates(this);
-    }
-
-    public boolean hasBeenTicked() {
-        return ticked;
-    }
-
-    @Override
-    public EnumSet<ForcedLoadReason> getForceLoadStatus() {
-        EnumSet<ForcedLoadReason> forcedLoadReasons = EnumSet.noneOf(ForcedLoadReason.class);
-        if (this.tickets.canUnload()) {
-            return forcedLoadReasons;
-        }
-        if (this.tickets.anyMatch(t -> t instanceof SpawnCubes)) {
-            forcedLoadReasons.add(ForcedLoadReason.SPAWN_AREA);
-        }
-        if (this.tickets.anyMatch(t -> t instanceof ICubicTicketInternal)) {
-            forcedLoadReasons.add(ForcedLoadReason.MOD_TICKET);
-        }
-        if (this.tickets.anyMatch(t -> !(t instanceof SpawnCubes) && !(t instanceof ICubicTicketInternal))) {
-            forcedLoadReasons.add(ForcedLoadReason.OTHER);
-        }
-        return forcedLoadReasons;
     }
 
     private final Reference2ReferenceArrayMap<MetaKey<?>, Object> meta = new Reference2ReferenceArrayMap<>();

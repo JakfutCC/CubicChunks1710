@@ -123,12 +123,6 @@ public class RegionCubeStorage implements ICubicStorage {
     }
 
     @Override
-    public boolean columnExists(ChunkCoordIntPair pos) throws IOException {
-        return this.save.getSaveSection2D()
-            .hasEntry(new EntryLocation2D(pos.chunkXPos, pos.chunkZPos));
-    }
-
-    @Override
     public boolean cubeExists(CubePos pos) throws IOException {
         return this.save.getSaveSection3D()
             .hasEntry(new EntryLocation3D(pos.getX(), pos.getY(), pos.getZ()));
@@ -255,12 +249,6 @@ public class RegionCubeStorage implements ICubicStorage {
             // rethrow original exception
             throw e.getCause();
         }
-    }
-
-    @Override
-    public void forEachColumn(Consumer<ChunkCoordIntPair> callback) throws IOException {
-        this.save.getSaveSection2D()
-            .forAllKeys(pos -> callback.accept(new ChunkCoordIntPair(pos.getEntryX(), pos.getEntryZ())));
     }
 
     @Override

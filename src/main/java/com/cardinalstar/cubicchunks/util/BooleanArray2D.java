@@ -18,17 +18,6 @@ public class BooleanArray2D extends BitSet implements Iterable<Vector2ic> {
         this.spany = spany;
     }
 
-    public BooleanArray2D(int spanx, int spany, boolean[] data) {
-        this.spanx = spanx;
-        this.spany = spany;
-
-        for (int i = 0; i < data.length; i++) {
-            if (data[i]) {
-                set(i);
-            }
-        }
-    }
-
     public BooleanArray2D(int spanx, int spany, byte[] data) {
         this.spanx = spanx;
         this.spany = spany;
@@ -42,10 +31,6 @@ public class BooleanArray2D extends BitSet implements Iterable<Vector2ic> {
 
     public void clear(int x, int y) {
         clear(index(x, y));
-    }
-
-    public boolean get2d(int x, int y) {
-        return get(index(x, y));
     }
 
     @Override

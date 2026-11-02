@@ -65,30 +65,12 @@ public class EmptyColumn extends Chunk implements IColumn {
         this.emptyCube = new BlankCube(this);
     }
 
-    @Override
-    public int getHeight(int x, int y, int z) {
-        return 0;
-    }
-
     /**
      * Returns the value in the height map at this x, zPosition coordinate in the chunk
      */
     @Override
     public int getHeightValue(int x, int z) {
         return 0;
-    }
-
-    // overrides for IColumn and IColumnInternal
-    // we can't implement them directly as that causes FG6+ to reobfuscate IColumn#getHeightValue(int, int)
-    // into vanilla SRG name, which breaks API and mixins
-    // @Override
-    public int getHeightValue(int localX, int blockY, int localZ) {
-        return 0;
-    }
-
-    // @Override
-    public boolean shouldTick() {
-        return false;
     }
 
     // @Override
@@ -134,14 +116,7 @@ public class EmptyColumn extends Chunk implements IColumn {
     }
 
     // @Override
-    public boolean hasLoadedCubes() {
-        return false;
-    }
-
-    // @Override
-    public void preCacheCube(Cube cube) {
-
-    }
+    public void preCacheCube(Cube cube) {}
 
     // @Override
     public int getX() {
@@ -153,11 +128,7 @@ public class EmptyColumn extends Chunk implements IColumn {
         return 0;
     }
 
-    // @Override
-    // public ChunkPrimer getCompatGenerationPrimer() {
-    // return null;
-    // }
-
+    // The three methods below override the IColumnInternal methods MixinChunk adds to Chunk.
     // @Override
     public void removeFromStagingHeightmap(ICube cube) {
 
@@ -185,16 +156,6 @@ public class EmptyColumn extends Chunk implements IColumn {
     @Override
     public void generateSkylightMap() {}
 
-    // @Override
-    // public IBlockState getBlockState(BlockPos pos) {
-    // return Blocks.AIR.getDefaultState();
-    // }
-
-    // @Override
-    // public int getBlockLightOpacity(BlockPos pos) {
-    // return 255;
-    // }
-
     @Override
     public int getSavedLightValue(EnumSkyBlock type, int x, int y, int z) {
         return type.defaultLightValue;
@@ -202,11 +163,6 @@ public class EmptyColumn extends Chunk implements IColumn {
 
     @Override
     public void setLightValue(EnumSkyBlock type, int x, int y, int z, int value) {}
-
-    // @Override
-    // public int getLightSubtracted(int x, int y, int zPosition, int amount) {
-    // return 0;
-    // }
 
     /**
      * Adds an entity to the chunk.
@@ -262,9 +218,6 @@ public class EmptyColumn extends Chunk implements IColumn {
     /**
      * Sets the isModified flag for this Chunk
      */
-    // @Override
-    // public void markDirty() {
-    // }
 
     /**
      * Fills the given list of all entities that intersect within the given bounding box that aren't the passed entity.
@@ -307,7 +260,4 @@ public class EmptyColumn extends Chunk implements IColumn {
      * (true) or not (false).
      */
     // @Override
-    // public boolean isEmptyBetween(int startY, int endY) {
-    // return true;
-    // }
 }

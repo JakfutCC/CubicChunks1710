@@ -9,15 +9,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface AccessorS23PacketBlockChange {
 
     @Accessor("field_148887_a")
-    int getX();
-
-    @Accessor("field_148885_b")
-    int getY();
-
-    @Accessor("field_148886_c")
-    int getZ();
-
-    @Accessor("field_148887_a")
     void setX(int x);
 
     @Accessor("field_148885_b")

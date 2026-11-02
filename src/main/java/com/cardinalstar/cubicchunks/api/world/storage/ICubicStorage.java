@@ -49,15 +49,6 @@ import com.cardinalstar.cubicchunks.util.CubePos;
 public interface ICubicStorage extends Flushable, AutoCloseable {
 
     /**
-     * Checks whether the column at the given position exists.
-     *
-     * @param pos the column's position
-     * @return whether the column at the given position exists
-     * @throws IOException if there is an IO error
-     */
-    boolean columnExists(ChunkCoordIntPair pos) throws IOException;
-
-    /**
      * Checks whether the cube at the given position exists.
      *
      * @param pos the cube's position
@@ -65,41 +56,6 @@ public interface ICubicStorage extends Flushable, AutoCloseable {
      * @throws IOException if there is an IO error
      */
     boolean cubeExists(CubePos pos) throws IOException;
-
-    /**
-     * Checks for the existence of multiple cubes+columns at once.
-     *
-     * @param positions a {@link PosBatch} containing the positions of all the cubes+columns to check for
-     * @return a {@link PosBatch} containing the positions of all the cubes+columns that exist
-     * @throws IOException if there is an IO error
-     */
-    @Nonnull
-    default PosBatch existsBatch(PosBatch positions) throws IOException {
-        // default implementation: check positions individually, but in parallel
-        try {
-            return new PosBatch(
-                positions.columns.parallelStream()
-                    .filter(pos -> {
-                        try {
-                            return this.columnExists(pos);
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    })
-                    .collect(Collectors.toSet()),
-                positions.cubes.parallelStream()
-                    .filter(pos -> {
-                        try {
-                            return this.cubeExists(pos);
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    })
-                    .collect(Collectors.toSet()));
-        } catch (UncheckedIOException e) {
-            throw e.getCause(); // rethrow original exception
-        }
-    }
 
     /**
      * Reads the NBT data for the column at the given position.
@@ -202,14 +158,6 @@ public interface ICubicStorage extends Flushable, AutoCloseable {
             throw e.getCause(); // rethrow original exception
         }
     }
-
-    /**
-     * Iterates over all the columns that exist in the world.
-     *
-     * @param callback the callback function to run
-     * @throws IOException if there is an IO error
-     */
-    void forEachColumn(Consumer<ChunkCoordIntPair> callback) throws IOException;
 
     /**
      * Iterates over all the cubes that exist in the world.

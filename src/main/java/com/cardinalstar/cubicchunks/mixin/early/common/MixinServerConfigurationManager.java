@@ -133,14 +133,4 @@ public abstract class MixinServerConfigurationManager implements ICubicPlayerLis
         }
     }
 
-    // @ModifyConstant(method = "respawnPlayer",
-    // constant = @Constant(doubleValue = 256))
-    // private double getMaxHeight(double _256, EntityPlayerMP playerIn, int dimension, boolean conqueredEnd) {
-    // // +/- 8 chunks around the original position are loaded because of an inject above
-    // if (!playerIn.worldObj.isBlockLoaded(new BlockPos(playerIn))) {
-    // return Double.NEGATIVE_INFINITY;
-    // }
-    // return ((ICubicWorld) playerIn.worldObj).getMaxHeight();
-    // }
-
 }

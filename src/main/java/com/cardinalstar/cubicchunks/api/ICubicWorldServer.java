@@ -35,22 +35,6 @@ public interface ICubicWorldServer extends ICubicWorld {
     ICubeProviderServer getCubeCache();
 
     /**
-     * Unloads or schedules unloading of no longer needed chunks from the world.
-     * Use of this should generally be avoided, as this is done automatically.
-     *
-     * There are generally only a few valid uses of this method:
-     * * Generating a lot of new chunks (for example pregenerating terrain)
-     * * On user command
-     *
-     * Note: there are known bugs caused by this method in some situations,
-     * that cause a chunk that contains a player to be unloaded when the player is moving
-     * at very high speed. This is very unlikely to happen and has never been reported
-     * outside of artificially created test setup with special player movement code.
-     * This issue is probably not fixable. Automatic chunk unloading is not affected.
-     */
-    void unloadOldCubes();
-
-    /**
      * CubicChunks equivalent of
      * {@link ForgeChunkManager#forceChunk(ForgeChunkManager.Ticket, ChunkCoordIntPair)}.
      *
@@ -63,17 +47,6 @@ public interface ICubicWorldServer extends ICubicWorld {
 
     /**
      * CubicChunks equivalent of
-     * {@link ForgeChunkManager#reorderChunk(ForgeChunkManager.Ticket, ChunkCoordIntPair)}
-     *
-     * Can accept tickets from different worlds.
-     *
-     * @param ticket ForgeChunkManager ticket
-     * @param chunk  position of the cube to reorder
-     */
-    void reorderChunk(ForgeChunkManager.Ticket ticket, CubePos chunk);
-
-    /**
-     * CubicChunks equivalent of
      * {@link ForgeChunkManager#unforceChunk(ForgeChunkManager.Ticket, ChunkCoordIntPair)}
      *
      * Can accept tickets from different worlds.
@@ -82,5 +55,4 @@ public interface ICubicWorldServer extends ICubicWorld {
      * @param chunk  position of the cube to unforce
      */
     void unforceChunk(ForgeChunkManager.Ticket ticket, CubePos chunk);
-
 }

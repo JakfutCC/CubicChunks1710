@@ -44,7 +44,6 @@ public class CubeIO implements ICubeIO {
 
     private final ICubicStorage storage;
     private final IPreloadFailureDelegate preloadFailures;
-    private final ITaskExecutor<ChunkCoordIntPair, Optional<NBTTagCompound>> columnLoadExecutor;
     private final ITaskExecutor<CubePos, Optional<NBTTagCompound>> cubeLoadExecutor;
     private final ITaskExecutor<Savable, Void> saveExecutor;
 
@@ -75,23 +74,6 @@ public class CubeIO implements ICubeIO {
     public CubeIO(ICubicStorage storage, IPreloadFailureDelegate preloadFailures) {
         this.storage = storage;
         this.preloadFailures = preloadFailures;
-
-        columnLoadExecutor = tasks -> {
-            try {
-                var result = storage
-                    .readBatch(new PosBatch(DataUtils.mapToList(tasks, ITaskFuture::getTask), Collections.emptyList()));
-
-                for (var task : tasks) {
-                    NBTTagCompound tag = result.columns.get(task.getTask());
-
-                    task.finish(Optional.ofNullable(tag));
-                }
-            } catch (IOException e) {
-                for (var task : tasks) {
-                    task.fail(e);
-                }
-            }
-        };
 
         cubeLoadExecutor = tasks -> {
             try {
@@ -152,23 +134,6 @@ public class CubeIO implements ICubeIO {
                 return true;
             }
         };
-    }
-
-    @Override
-    public boolean columnExists(ChunkCoordIntPair pos) {
-        synchronized (columnCache) {
-            SaveData data = columnCache.get(pos);
-
-            if (data != null) return data.tag != null;
-        }
-
-        try {
-            if (storage.columnExists(pos)) return true;
-        } catch (IOException e) {
-            CubicChunks.LOGGER.error("Could not check if column {} exists", pos, e);
-        }
-
-        return false;
     }
 
     @Override
@@ -367,27 +332,6 @@ public class CubeIO implements ICubeIO {
         }
 
         this.storage.close();
-    }
-
-    @Override
-    public void preloadColumn(ChunkCoordIntPair pos) {
-        synchronized (columnCache) {
-            if (columnCache.containsKey(pos)) return;
-        }
-
-        TaskPool.submit(columnLoadExecutor, pos, tag -> {
-            synchronized (columnCache) {
-                if (columnCache.containsKey(pos)) {
-                    return;
-                }
-
-                columnCache.put(pos, new SaveData(tag.orElse(null), null, System.currentTimeMillis()));
-            }
-
-            if (!tag.isPresent()) {
-                if (preloadFailures != null) preloadFailures.onColumnPreloadFailed(pos);
-            }
-        });
     }
 
     @Override

@@ -21,10 +21,8 @@
 package com.cardinalstar.cubicchunks.mixin.early.common;
 
 import static com.cardinalstar.cubicchunks.util.Coords.blockToCube;
-import static com.cardinalstar.cubicchunks.util.Coords.blockToLocal;
 
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -33,7 +31,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
@@ -42,19 +39,16 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.EnumSkyBlock;
-import net.minecraft.world.GameRules;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.WorldServer;
-import net.minecraft.world.WorldServerMulti;
 import net.minecraft.world.WorldSettings;
 import net.minecraft.world.WorldType;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.storage.ISaveHandler;
-import net.minecraft.world.storage.MapStorage;
 import net.minecraft.world.storage.WorldInfo;
 
 import org.spongepowered.asm.mixin.Final;
@@ -83,13 +77,11 @@ import com.cardinalstar.cubicchunks.network.PacketEncoderWorldHeight;
 import com.cardinalstar.cubicchunks.network.PacketEncoderWorldHeight.PacketWorldHeight;
 import com.cardinalstar.cubicchunks.util.Coords;
 import com.cardinalstar.cubicchunks.util.CubePos;
-import com.cardinalstar.cubicchunks.util.ReflectionUtil;
 import com.cardinalstar.cubicchunks.world.CubicChunksSavedData;
 import com.cardinalstar.cubicchunks.world.ICubicWorld;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
 import com.cardinalstar.cubicchunks.world.cube.ICubeProvider;
 import com.cardinalstar.cubicchunks.world.cube.ICubeProviderInternal;
-import com.google.common.collect.ImmutableList;
 import com.gtnewhorizon.gtnhlib.blockpos.BlockPos;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -106,23 +98,11 @@ import cpw.mods.fml.common.FMLCommonHandler;
 @SuppressWarnings({ "AddedMixinMembersNamePattern" })
 public abstract class MixinWorld implements ICubicWorldInternal {
 
-    // these have to be here because of mixin limitation, they are used by MixinWorldServer
-    @Shadow
-    public abstract ISaveHandler getSaveHandler();
-
-    // TODO FIGURE OUT WHERE THESE GO
-    @Shadow
-    public abstract boolean checkChunksExist(int minX, int minY, int minZ, int maxX, int maxY, int maxZ);
-
-    @Shadow
-    public abstract boolean doChunksNearChunkExist(int x, int y, int z, int radius);
-
-    @Shadow(remap = false)
-    @Final
-    public MapStorage perWorldStorage;
-
     @Shadow
     protected IChunkProvider chunkProvider;
+
+    @Shadow
+    public abstract BiomeGenBase getBiomeGenForCoords(int x, int z);
 
     @Shadow
     @Final
@@ -131,23 +111,13 @@ public abstract class MixinWorld implements ICubicWorldInternal {
 
     @Shadow
     @Final
-    public Random rand;
-    @Shadow
-    @Final
     public boolean isRemote;
-    @Shadow
-    @Final
-    public Profiler theProfiler;
     @Shadow
     @Final
     @Mutable
     protected ISaveHandler saveHandler;
     @Shadow
-    protected boolean findingSpawnPoint;
-    @Shadow
     protected WorldInfo worldInfo;
-    @Shadow
-    protected int updateLCG;
 
     @Shadow
     protected abstract boolean chunkExists(int i, int i1);
@@ -156,72 +126,12 @@ public abstract class MixinWorld implements ICubicWorldInternal {
     protected LightingManager lightingManager;
     protected int minHeight = 0, maxHeight = 256, fakedMaxHeight = 0;
     private int minGenerationHeight = 0, maxGenerationHeight = 256;
-    // @Shadow public abstract boolean isValid(BlockPos pos);
-
-    @Shadow
-    public abstract GameRules getGameRules();
-
-    @Shadow
-    public abstract boolean isRaining();
-
-    @Shadow
-    public abstract boolean isThundering();
-
-    // @Shadow public abstract boolean isRainingAt(BlockPos position);
-
-    // @Shadow public abstract DifficultyInstance getDifficultyForLocation(BlockPos pos);
 
     @Shadow
     public abstract int getPrecipitationHeight(int blockX, int blockY);
 
     @Shadow
-    protected abstract void setActivePlayerChunksAndCheckLight();
-
-    @Shadow
-    public abstract boolean canLightningStrikeAt(int x, int y, int z);
-
-    @Shadow
-    public abstract boolean canBlockFreeze(int x, int y, int z, boolean byWater);
-
-    @Shadow
-    public abstract boolean setBlock(int x, int y, int z, Block blockIn);
-
-    @Shadow
-    public abstract boolean setBlock(int x, int y, int z, Block blockIn, int metaIn, int flags);
-
-    @Shadow
-    public abstract boolean isBlockFreezableNaturally(int x, int y, int z);
-
-    // canSnowAt
-    @Shadow
-    public abstract boolean func_147478_e(int x, int y, int z, boolean checkLight);
-
-    // @Shadow public abstract boolean isBlockLoaded(BlockPos pos);
-
-    @Shadow
-    public abstract BiomeGenBase getBiomeGenForCoords(int x, int z);
-
-    // @Shadow public abstract boolean isBlockLoaded(BlockPos pos, boolean allowEmpty);
-
-    @Shadow
     public abstract Chunk getChunkFromBlockCoords(int x, int z);
-
-    @Shadow
-    public abstract boolean canBlockSeeTheSky(int x, int y, int z);
-
-    @Shadow
-    public abstract void setLightValue(EnumSkyBlock type, int x, int y, int z, int lightValue);
-
-    /*
-     * This shadow method is used by MixinWorldServer, place in here for Bukkit compatibility.
-     * As World#spawnEntity method is not getting overridden in CraftBukkit WorldServer class,
-     * shadowing spawnEntity in WorldServer will break Bukkit compatibility.
-     */
-    @Shadow
-    public abstract boolean spawnEntityInWorld(Entity entityIn);
-
-    @Shadow
-    public abstract IChunkProvider getChunkProvider();
 
     @Shadow
     protected abstract IChunkProvider createChunkProvider();
@@ -255,7 +165,6 @@ public abstract class MixinWorld implements ICubicWorldInternal {
         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/storage/WorldInfo;isInitialized()Z"))
     public void initWorld(ISaveHandler p_i45369_1_, String p_i45369_2_, WorldSettings p_i45369_3_,
         WorldProvider p_i45369_4_, Profiler p_i45369_5_, CallbackInfo ci) {
-
         boolean isServer = (Object) this instanceof WorldServer;
         boolean isClient = false;
 
@@ -421,12 +330,6 @@ public abstract class MixinWorld implements ICubicWorldInternal {
         return this.getCubeFromBlockCoords(blockToCube(pos.getX()), blockToCube(pos.getY()), blockToCube(pos.getZ()));
     }
 
-    @Override
-    public int getEffectiveHeight(int blockX, int blockZ) {
-        return this.chunkProvider.provideChunk(blockToCube(blockX), blockToCube(blockZ))
-            .getHeightValue(blockToLocal(blockX), blockToLocal(blockZ));
-    }
-
     // suppress mixin warning when running with -Dmixin.checks.interfaces=true
     @Override
     public void tickCubicWorld() {
@@ -531,11 +434,6 @@ public abstract class MixinWorld implements ICubicWorldInternal {
     }
 
     @Override
-    public boolean isBlockColumnLoaded(int x, int y, int z) {
-        return this.chunkExists(blockToCube(x), blockToCube(z));
-    }
-
-    @Override
     public boolean cubeExists(int x, int y, int z) {
         return getCubeCache().cubeExists(x, y, z);
     }
@@ -548,24 +446,6 @@ public abstract class MixinWorld implements ICubicWorldInternal {
     @ModifyConstant(method = "func_147461_a", constant = @Constant(intValue = 64), require = 1)
     private int collidingBoxFix2(int constant, @Local(argsOnly = true) AxisAlignedBB box) {
         return (int) ((box.maxY - box.minY) / 2 + box.minY);
-    }
-
-    private static final List<Class<?>> allowedServerWorldClasses = ImmutableList.copyOf(
-        new Class[] { WorldServer.class, WorldServerMulti.class,
-            // non-existing classes will be Objects
-            ReflectionUtil.getClassOrDefault("WorldServerOF", Object.class), // OptiFine's WorldServer, no package
-            ReflectionUtil.getClassOrDefault("WorldServerMultiOF", Object.class), // OptiFine's WorldServerMulti, no
-            // package
-            ReflectionUtil.getClassOrDefault("net.optifine.override.WorldServerOF", Object.class), // OptiFine's
-            // WorldServer
-            ReflectionUtil.getClassOrDefault("net.optifine.override.WorldServerMultiOF", Object.class), // OptiFine's
-            // WorldServerMulti
-            ReflectionUtil.getClassOrDefault("com.forgeessentials.multiworld.WorldServerMultiworld", Object.class) // ForgeEssentials
-        // world
-        });
-
-    private boolean shouldSkipWorld(World world) {
-        return !allowedServerWorldClasses.contains(world.getClass());
     }
 
     @WrapOperation(

@@ -63,10 +63,6 @@ public final class SpawnPlaceFinder {
         } else {
             spawnFuzz = 1;
         }
-        // int border = MathHelper.floor(world.getWorldBorder().getClosestDistance(ret.getX(), ret.getZ()));
-        // if (border < spawnFuzz) {
-        // spawnFuzz = border;
-        // }
 
         if (!world.provider.isHellWorld && !isAdventure && spawnFuzz != 0) {
             if (spawnFuzz < 2) {

@@ -20,13 +20,7 @@
  */
 package com.cardinalstar.cubicchunks.entity;
 
-import net.minecraft.entity.player.EntityPlayerMP;
-
-import com.cardinalstar.cubicchunks.api.ICube;
-
 public interface ICubicEntityTracker {
-
-    void sendLeashedEntitiesInCube(EntityPlayerMP player, ICube cube);
 
     void setVertViewDistance(int viewDistance);
 

@@ -165,22 +165,11 @@ public enum Mixins implements IMixins {
         .addCommonMixins("common.MixinWorldServer")
         .setPhase(Phase.EARLY)
         .setApplyIf(() -> true)),
-    MIXIN_WORLD_SETTINGS(
-        new MixinBuilder("Mixin for world settings allowing cubes.").addCommonMixins("common.MixinWorldSettings")
-            .setPhase(Phase.EARLY)
-            .setApplyIf(() -> true)),
     MIXIN_WORLD_PROVIDER(new MixinBuilder("Intercept WorldProvider getActualHeight + player spawning.")
         .addCommonMixins("common.MixinWorldProvider")
         .setPhase(Phase.EARLY)
         .setApplyIf(() -> true)),
     MIXIN_WORLD(new MixinBuilder("Implementing ICubicWorld.").addCommonMixins("common.MixinWorld")
-        .setPhase(Phase.EARLY)
-        .setApplyIf(() -> true)),
-    MIXIN_WORLD_INFO(new MixinBuilder("Implementing ICubicWorldInfo").addCommonMixins("common.MixinWorldInfo")
-        .setPhase(Phase.EARLY)
-        .setApplyIf(() -> true)),
-    MIXIN_DERIVED_WORLD_INFO(new MixinBuilder("Giving the isCubic method to DerivedWorldInfo")
-        .addCommonMixins("common.MixinDerivedWorldInfo")
         .setPhase(Phase.EARLY)
         .setApplyIf(() -> true)),
     MIXIN_BLOCK_ACCESS_MIN_MAX_FIX(new MixinBuilder("Have IBlockAccess implement IMinMaxHeight")
@@ -243,10 +232,6 @@ public enum Mixins implements IMixins {
             .setApplyIf(() -> true)),
 
     // SERVER
-    MIXIN_INTEGRATED_SERVER_ACCESSOR(
-        new MixinBuilder("Allows access to the worldsettings field.").addCommonMixins("common.IIntegratedServer")
-            .setPhase(Phase.EARLY)
-            .setApplyIf(() -> true)),
     MIXIN_MINECRAFT_SERVER(new MixinBuilder("Initializes a cubic world instead of a normal world.")
         .addCommonMixins("common.MixinMinecraftServer")
         .setPhase(Phase.EARLY)
@@ -255,10 +240,6 @@ public enum Mixins implements IMixins {
         .addCommonMixins("common.MixinServerConfigurationManager")
         .setPhase(Phase.EARLY)
         .setApplyIf(() -> true)),
-    MIXIN_REGION_FILE_CACHE(
-        new MixinBuilder("I believe this is for compat but IDK").addCommonMixins("common.MixinRegionFileCache")
-            .setPhase(Phase.EARLY)
-            .setApplyIf(() -> true)),
     MIXIN_ENTITY_LIVING_BASE(new MixinBuilder("Fix enttiy handling").addClientMixins("common.MixinEntityLivingBase")
         .setPhase(Phase.EARLY)
         .setApplyIf(() -> true)),
@@ -288,9 +269,6 @@ public enum Mixins implements IMixins {
             .setApplyIf(() -> true)),
     MIXIN_IGUI_OPTIONS_ROW_LIST(new MixinBuilder("Allows access to the field_148184_k (getOptions) field.")
         .addClientMixins("client.IGuiOptionsRowList")
-        .setPhase(Phase.EARLY)
-        .setApplyIf(() -> true)),
-    MIXIN_IGUI_SCREEN(new MixinBuilder("Allows access to the buttonList field.").addClientMixins("client.IGuiScreen")
         .setPhase(Phase.EARLY)
         .setApplyIf(() -> true)),
     MIXIN_CHUNK_CUBES_CLIENT(

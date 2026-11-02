@@ -190,18 +190,8 @@ public class HashMap3D<V> extends Long2ObjectOpenHashMap<V> {
 
         public Entry3D() {}
 
-        /// @deprecated Use [#Entry3D(long, Object)] to avoid the long boxing.
-        @Deprecated
-        public Entry3D(Long key, T value) {
-            super(key, value);
-        }
-
         public Entry3D(long key, T value) {
             super(key, value);
-        }
-
-        public Entry3D(int posX, int posY, int posZ, T value) {
-            super(pack(posX, posY, posZ), value);
         }
 
         void setKey(long key) {

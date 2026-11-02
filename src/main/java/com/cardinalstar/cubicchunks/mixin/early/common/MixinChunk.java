@@ -1106,27 +1106,10 @@ public abstract class MixinChunk implements IColumn, IColumnInternal {
         return Math.max(opacityIndex.getTopBlockY(localX, localZ), stagingHeightMap.getTopBlockY(localX, localZ));
     }
 
-    @Override
-    public boolean hasLoadedCubes() {
-        return !cubeMap.isEmpty();
-    }
-
     @Unique
     @SuppressWarnings({ "unchecked", "AddedMixinMembersNamePattern" })
     public <T extends World & ICubicWorldInternal> T getCubicWorld() {
         return (T) this.worldObj;
-    }
-
-    @Override
-    public boolean shouldTick() {
-        for (Cube cube : cubeMap) {
-            if (cube.getTickets()
-                .shouldTick()) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     @Override
@@ -1164,11 +1147,6 @@ public abstract class MixinChunk implements IColumn, IColumnInternal {
     @Intrinsic
     public int getZ() {
         return zPosition;
-    }
-
-    @Override
-    public int getHeightValue(int localX, int blockY, int localZ) {
-        return getTopYWithStaging(localX, localZ) + 1;
     }
 
     /**

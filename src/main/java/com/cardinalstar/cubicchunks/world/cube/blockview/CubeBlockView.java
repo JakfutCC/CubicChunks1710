@@ -11,6 +11,8 @@ import com.cardinalstar.cubicchunks.world.cube.Cube;
 
 public class CubeBlockView implements IMutableBlockView {
 
+    private static final Box CUBE_BOUNDS = new Box(0, 0, 0, 15, 15, 15);
+
     private final Cube cube;
 
     public CubeBlockView(Cube cube) {
@@ -52,6 +54,6 @@ public class CubeBlockView implements IMutableBlockView {
 
     @Override
     public Box getBounds() {
-        return EBSBlockView.EBS_BOUNDS;
+        return CUBE_BOUNDS;
     }
 }

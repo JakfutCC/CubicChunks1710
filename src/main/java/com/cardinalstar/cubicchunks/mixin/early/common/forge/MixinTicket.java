@@ -56,14 +56,6 @@ public abstract class MixinTicket implements ICubicTicketInternal {
 
     @Override
     @Accessor
-    public abstract void setEntityChunkX(int chunkX);
-
-    @Override
-    @Accessor
-    public abstract void setEntityChunkZ(int chunkZ);
-
-    @Override
-    @Accessor
     public abstract int getEntityChunkX();
 
     @Override

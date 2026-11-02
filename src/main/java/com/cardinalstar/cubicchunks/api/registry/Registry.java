@@ -1,6 +1,5 @@
 package com.cardinalstar.cubicchunks.api.registry;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,9 +20,5 @@ public class Registry<V> {
 
     public V get(UniqueIdentifier name) {
         return entries.get(name);
-    }
-
-    public Collection<V> getAll() {
-        return entries.values();
     }
 }

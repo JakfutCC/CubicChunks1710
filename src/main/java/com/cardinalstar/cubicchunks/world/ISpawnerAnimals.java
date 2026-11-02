@@ -40,8 +40,5 @@ public interface ISpawnerAnimals {
     interface Handler {
 
         void setEntitySpawner(@Nullable ISpawnerAnimals spawner);
-
-        @Nullable
-        ISpawnerAnimals getEntitySpawner();
     }
 }

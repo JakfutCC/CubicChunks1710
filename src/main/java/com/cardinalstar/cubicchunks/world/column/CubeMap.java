@@ -150,15 +150,6 @@ public class CubeMap implements Iterable<Cube> {
         return cubes;
     }
 
-    /**
-     * Check if this storage is empty
-     *
-     * @return <code>true</code> if there are no cubes in this storage, <code>false</code> otherwise
-     */
-    public boolean isEmpty() {
-        return cubes.isEmpty();
-    }
-
     private <T> T getSafe(@Nullable T[] array, int index) {
         if (array == null) return null;
 

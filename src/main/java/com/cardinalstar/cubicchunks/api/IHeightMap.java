@@ -36,19 +36,6 @@ public interface IHeightMap {
     void onOpacityChange(int localX, int blockY, int localZ, int opacity);
 
     /**
-     * Returns true if the block at the given position is occluded by a known non-opaque block further up.
-     *
-     * @param localX local block x-coordinate (0..15)
-     * @param blockY global block y-coordinate
-     * @param localZ local block zPosition-coordinate (0..15)
-     *
-     * @return true if there exists a known non-opaque block above the given y-coordinate
-     */
-    default boolean isOccluded(int localX, int blockY, int localZ) {
-        return blockY <= this.getTopBlockY(localX, localZ);
-    }
-
-    /**
      * Returns the y-coordinate of the highest non-transparent block in the specified block-column.
      *
      * @param localX local block x-coordinate (0..15)
@@ -58,27 +45,6 @@ public interface IHeightMap {
      *         exist
      */
     int getTopBlockY(int localX, int localZ);
-
-    /**
-     * Returns the y-coordinate of the highest non-transparent block that is below the given blockY.
-     *
-     * @param localX local block x-coordinate (0..15)
-     * @param localZ local block zPosition-coordinate (0..15)
-     * @param blockY only positions below or at this Y coordinate will be retuirned
-     *
-     * @return Y position of the top non-transparent block below blockY, or very low (far below the min world height) if
-     *         one doesn't exist
-     */
-    @Deprecated
-    int getTopBlockYBelow(int localX, int localZ, int blockY);
-
-    /**
-     * Out of the highest non-opaque blocks from all block columns in the column, returns the y-coordinate of the lowest
-     * block.
-     *
-     * @return the minimum of all top block coordinates in this heightmap instance
-     */
-    int getLowestTopBlockY();
 
     // This class exists only because I don't want to introduce many off-by-one errors when modifying height tracking
     // code to store

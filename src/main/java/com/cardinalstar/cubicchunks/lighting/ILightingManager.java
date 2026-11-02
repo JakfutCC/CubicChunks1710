@@ -78,8 +78,6 @@ public interface ILightingManager {
 
     Cube.ICubeLightTrackingInfo createLightData(ICube cube);
 
-    boolean hasPendingLightUpdates(ICube cube);
-
     void onHeightUpdate(int x, int y, int z);
 
     void onTrackCubeSurface(ICube cube);

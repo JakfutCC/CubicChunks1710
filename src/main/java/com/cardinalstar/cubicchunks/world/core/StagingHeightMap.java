@@ -120,15 +120,4 @@ public class StagingHeightMap implements IHeightMap {
         }
         return Coords.NO_HEIGHT;
     }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public int getTopBlockYBelow(int localX, int localZ, int blockY) {
-        throw new UnsupportedOperationException("Not implemented for staging heightmap");
-    }
-
-    @Override
-    public int getLowestTopBlockY() {
-        throw new UnsupportedOperationException("Not implemented for staging heightmap");
-    }
 }

@@ -23,11 +23,8 @@ package com.cardinalstar.cubicchunks.mixin.early.common;
 import java.util.Set;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityTracker;
 import net.minecraft.entity.EntityTrackerEntry;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.network.play.server.S1BPacketEntityAttach;
 import net.minecraft.world.WorldServer;
 
 import org.spongepowered.asm.mixin.Mixin;
@@ -38,7 +35,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import com.cardinalstar.cubicchunks.api.ICube;
 import com.cardinalstar.cubicchunks.entity.ICubicEntityTracker;
 import com.cardinalstar.cubicchunks.server.ICubicPlayerList;
 
@@ -66,30 +62,6 @@ public class MixinEntityTracker implements ICubicEntityTracker {
         // noinspection ConstantConditions
         ((ICubicEntityTracker.Entry) e).setMaxVertRange(maxVertTrackingDistanceThreshold);
         return e;
-    }
-
-    // Previous version of this function contain code which force Minecraft to send all SPacketEntityAttach before any
-    // SPacketSetPassengers
-    @Override
-    public void sendLeashedEntitiesInCube(EntityPlayerMP player, ICube cubeIn) {
-        for (EntityTrackerEntry entitytrackerentry : this.trackedEntities) {
-            Entity entity = entitytrackerentry.myEntity;
-            if (entity != player && entity.chunkCoordX == cubeIn.getX()
-                && entity.chunkCoordZ == cubeIn.getZ()
-                && entity.chunkCoordY == cubeIn.getY()) {
-
-                entitytrackerentry.tryStartWachingThis(player);
-                // noinspection ConstantConditions
-                if (entity instanceof EntityLiving && ((EntityLiving) entity).getLeashedToEntity() != null) {
-                    player.playerNetServerHandler
-                        .sendPacket(new S1BPacketEntityAttach(1, entity, ((EntityLiving) entity).getLeashedToEntity()));
-                }
-
-                if (entity.riddenByEntity != null) {
-                    player.playerNetServerHandler.sendPacket(new S1BPacketEntityAttach(0, entity, entity.ridingEntity));
-                }
-            }
-        }
     }
 
     @Override

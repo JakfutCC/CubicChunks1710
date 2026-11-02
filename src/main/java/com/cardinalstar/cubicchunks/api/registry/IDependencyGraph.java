@@ -23,18 +23,4 @@ public interface IDependencyGraph<T> {
 
     /// Adds a named object with one or more dependency specifications (see above)
     void addObject(String name, T value, String... deps);
-
-    /// Adds a dependency from an object to another one. `object` will run after `dependsOn`. If this overwrites an
-    /// existing dependency, the given `optional` parameter overwrites the existing optional-ness.
-    void addDependency(String object, String dependsOn, boolean optional);
-
-    /// Removes a dependency. Opposite of [#addDependency(String, String, boolean)].
-    /// @return True when a dependency was removed.
-    boolean removeDependency(String object, String dependsOn);
-
-    /// Adds a target. This acts like a systemd target - it can be thought of as a 'goal' instead of a discrete step.
-    /// As an example, if an integration module needs the system to be in a specific state before it runs, it can
-    /// depend on a target. Any other objects that affect the target can add a `before:` dependency, which adds a
-    /// transient dependency between the first and second objects via the target.
-    void addTarget(String targetName, String... deps);
 }

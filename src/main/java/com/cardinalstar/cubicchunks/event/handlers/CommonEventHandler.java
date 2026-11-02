@@ -21,27 +21,19 @@
 package com.cardinalstar.cubicchunks.event.handlers;
 
 import java.io.IOException;
-import java.util.List;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
-import net.minecraft.world.WorldServerMulti;
-import net.minecraft.world.chunk.IChunkProvider;
-import net.minecraft.world.gen.ChunkProviderServer;
 import net.minecraftforge.event.world.WorldEvent;
 
 import com.cardinalstar.cubicchunks.CubicChunks;
 import com.cardinalstar.cubicchunks.mixin.api.ICubicWorldInternal;
 import com.cardinalstar.cubicchunks.server.chunkio.ICubeLoader;
-import com.cardinalstar.cubicchunks.util.ReflectionUtil;
 import com.cardinalstar.cubicchunks.world.ICubicWorld;
 import com.cardinalstar.cubicchunks.world.cube.ICubeProviderInternal;
-import com.google.common.collect.ImmutableList;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.Side;
 
@@ -55,36 +47,6 @@ public class CommonEventHandler {
         if (evt.phase == TickEvent.Phase.END && evt.side == Side.SERVER) {
             ((ICubicWorldInternal) world).tickCubicWorld();
         }
-    }
-
-    @SubscribeEvent
-    public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
-        // VanillaNetworkHandler.removeBedrockPlayer((EntityPlayerMP) event.player);
-    }
-
-    @SuppressWarnings("unchecked")
-    private final List<Class<?>> allowedServerWorldClasses = ImmutableList.copyOf(
-        new Class[] { WorldServer.class, WorldServerMulti.class,
-            // non-existing classes will be Objects
-            ReflectionUtil.getClassOrDefault("WorldServerOF", Object.class), // OptiFine's WorldServer, no package
-            ReflectionUtil.getClassOrDefault("WorldServerMultiOF", Object.class), // OptiFine's WorldServerMulti, no
-                                                                                  // package
-            ReflectionUtil.getClassOrDefault("net.optifine.override.WorldServerOF", Object.class), // OptiFine's
-                                                                                                   // WorldServer
-            ReflectionUtil.getClassOrDefault("net.optifine.override.WorldServerMultiOF", Object.class), // OptiFine's
-                                                                                                        // WorldServerMulti
-            ReflectionUtil.getClassOrDefault("com.forgeessentials.multiworld.WorldServerMultiworld", Object.class) // ForgeEssentials
-                                                                                                                   // world
-        });
-
-    @SuppressWarnings("unchecked")
-    private final List<Class<? extends IChunkProvider>> allowedServerChunkProviderClasses = ImmutableList
-        .copyOf(new Class[] { ChunkProviderServer.class });
-
-    private boolean shouldSkipWorld(World world) {
-        return !allowedServerWorldClasses.contains(world.getClass()) || !allowedServerChunkProviderClasses.contains(
-            world.getChunkProvider()
-                .getClass());
     }
 
     @SubscribeEvent

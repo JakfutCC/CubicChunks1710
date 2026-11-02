@@ -32,7 +32,6 @@ import net.minecraft.world.chunk.Chunk;
 
 import com.cardinalstar.cubicchunks.api.IHeightMap;
 import com.cardinalstar.cubicchunks.lighting.LightingManager;
-import com.cardinalstar.cubicchunks.util.Coords;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
 
 @ParametersAreNonnullByDefault
@@ -40,7 +39,6 @@ public class ClientHeightMap implements IHeightMap {
 
     private final Chunk column;
     private final HeightMap hmap;
-    private int heightMapLowest = Coords.NO_HEIGHT;
 
     public ClientHeightMap(Chunk column, int[] heightmap) {
         this.column = column;
@@ -88,25 +86,6 @@ public class ClientHeightMap implements IHeightMap {
     @Override
     public int getTopBlockY(int localX, int localZ) {
         return hmap.get(getIndex(localX, localZ));
-    }
-
-    @Override
-    public int getLowestTopBlockY() {
-        if (heightMapLowest == Coords.NO_HEIGHT) {
-            heightMapLowest = Integer.MAX_VALUE;
-            for (int i = 0; i < Cube.SIZE * Cube.SIZE; i++) {
-                if (hmap.get(i) < heightMapLowest) {
-                    heightMapLowest = hmap.get(i);
-                }
-            }
-        }
-        return heightMapLowest;
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override
-    public int getTopBlockYBelow(int localX, int localZ, int blockY) {
-        throw new UnsupportedOperationException("Not implemented");
     }
 
     public void setHeight(int localX, int localZ, int height) {

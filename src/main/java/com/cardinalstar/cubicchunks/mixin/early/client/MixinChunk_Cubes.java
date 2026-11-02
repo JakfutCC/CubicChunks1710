@@ -23,19 +23,13 @@ package com.cardinalstar.cubicchunks.mixin.early.client;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.cardinalstar.cubicchunks.api.IColumn;
-import com.cardinalstar.cubicchunks.api.IHeightMap;
-import com.cardinalstar.cubicchunks.world.column.CubeMap;
-import com.cardinalstar.cubicchunks.world.cube.Cube;
 
 /**
  * Modifies vanilla code in Chunk to use Cubes. Client side only.
@@ -46,20 +40,7 @@ public abstract class MixinChunk_Cubes implements IColumn {
 
     protected MixinChunk_Cubes() {}
 
-    @Shadow
-    public abstract ExtendedBlockStorage[] getBlockStorageArray();
-
-    @Shadow
-    @Final
-    private ExtendedBlockStorage[] storageArrays;
-    /*
-     * WARNING: WHEN YOU RENAME ANY OF THESE 3 FIELDS RENAME CORRESPONDING
-     * FIELDS IN "cubicchunks.mixin.early.common.MixinChunk_Cubes" and
-     * "cubicchunks.mixin.early.common.MixinChunk_Columns".
-     */
-    private CubeMap cubeMap;
-    private IHeightMap opacityIndex;
-    private Cube cachedCube; // todo: make it always nonnull using BlankCube
+    // todo: make it always nonnull using BlankCube
 
     private boolean isColumn = false;
 
@@ -71,18 +52,6 @@ public abstract class MixinChunk_Cubes implements IColumn {
     private void generateHeightMap_CubicChunks_Cancel(CallbackInfo cbi) {
         if (isColumn) {
             cbi.cancel();
-        }
-    }
-
-    // ==============================================
-    // fillChunk
-    // ==============================================
-
-    @Inject(method = "fillChunk", at = @At(value = "HEAD"))
-    private void fillChunk_CubicChunks_NotSupported(byte[] p_76607_1_, int p_76607_2_, int p_76607_3_,
-        boolean p_76607_4_, CallbackInfo ci) {
-        if (false) if (isColumn) {
-            throw new UnsupportedOperationException("setting storage arrays it not supported with cubic chunks");
         }
     }
 }

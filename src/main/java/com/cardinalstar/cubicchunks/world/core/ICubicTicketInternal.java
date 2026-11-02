@@ -51,11 +51,7 @@ public interface ICubicTicketInternal extends ICubicTicket, ITicket {
 
     // setters and getters for private data, because no ATs for forge classes
 
-    void setEntityChunkX(int chunkX);
-
     void setEntityChunkY(int cubeY);
-
-    void setEntityChunkZ(int chunkZ);
 
     int getEntityChunkX();
 
