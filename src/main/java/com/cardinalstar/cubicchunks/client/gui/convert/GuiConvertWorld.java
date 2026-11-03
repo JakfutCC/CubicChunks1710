@@ -10,6 +10,7 @@ import net.minecraft.client.gui.GuiYesNo;
 import net.minecraft.client.gui.GuiYesNoCallback;
 import net.minecraft.client.resources.I18n;
 
+import com.cardinalstar.cubicchunks.util.Mods;
 import com.cardinalstar.cubicchunks.world.convert.WorldSaveFormat;
 
 /**
@@ -93,7 +94,11 @@ public class GuiConvertWorld extends GuiScreen implements GuiYesNoCallback {
     private final WorldSaveFormat currentFormat;
 
     private ConversionTarget selectedTarget = null;
-    private BlockFormat selectedBlockFormat = BlockFormat.VANILLA;
+    /**
+     * EndlessIDs when it is installed: the vanilla format keeps only 12 bits of block IDs and 8 of biome IDs, and the
+     * EndlessIDs format stores biomes where only EndlessIDs reads them.
+     */
+    private BlockFormat selectedBlockFormat = Mods.EndlessIDs.isModLoaded() ? BlockFormat.EID : BlockFormat.VANILLA;
 
     private GuiButton convertButton;
     private ToggleButton ccButton;
