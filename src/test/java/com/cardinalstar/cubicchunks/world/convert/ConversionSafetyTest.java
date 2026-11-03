@@ -68,7 +68,9 @@ class ConversionSafetyTest {
         writeRegion(world.resolve("DIM1"), 1, false);
         convert(new AtomicBoolean());
         assertEquals(WorldSaveFormat.CC, WorldFormatDetector.detect(world.toFile()));
-        assertArrayEquals(originalOverworld, Files.readAllBytes(world.resolve(".cubicchunks-anvil-backup/region/r.0.0.mca")));
+        assertArrayEquals(
+            originalOverworld,
+            Files.readAllBytes(world.resolve(".cubicchunks-anvil-backup/region/r.0.0.mca")));
     }
 
     @ParameterizedTest
@@ -83,7 +85,9 @@ class ConversionSafetyTest {
         assertTrue(Files.exists(world.resolve("data/cubicchunks.world_format.dat")));
         for (Path dimension : new Path[] { world, world.resolve("DIM-1"), world.resolve("PERSONAL_DIM7") }) {
             assertFalse(Files.exists(dimension.resolve("region")));
-            Path saved = world.resolve(".cubicchunks-anvil-backup").resolve(world.relativize(dimension)).resolve("region/r.0.0.mca");
+            Path saved = world.resolve(".cubicchunks-anvil-backup")
+                .resolve(world.relativize(dimension))
+                .resolve("region/r.0.0.mca");
             assertArrayEquals(originals.get(dimension), Files.readAllBytes(saved));
             try (RegionCubeStorage storage = new RegionCubeStorage(dimension)) {
                 assertNotNull(storage.readColumn(new ChunkCoordIntPair(0, 0)));
@@ -99,20 +103,25 @@ class ConversionSafetyTest {
         AtomicBoolean cancel = new AtomicBoolean();
         AtomicInteger columns = new AtomicInteger();
         BiomeAdapter adapter = new BiomeAdapter() {
+
             @Override
             public void writeBiomeData(int[] biomes, NBTTagCompound level) {
-                BiomeAdapterDiscovery.eid().writeBiomeData(biomes, level);
+                BiomeAdapterDiscovery.eid()
+                    .writeBiomeData(biomes, level);
                 if (columns.incrementAndGet() == 33) cancel.set(true);
             }
 
             @Override
             public void readBiomeData(NBTTagCompound level, int[] biomes) {
-                BiomeAdapterDiscovery.eid().readBiomeData(level, biomes);
+                BiomeAdapterDiscovery.eid()
+                    .readBiomeData(level, biomes);
             }
         };
         ConversionProgress progress = new ConversionProgress();
-        assertThrows(InterruptedIOException.class, () -> new VanillaToCCConverter(SectionAdapterDiscovery.eid(), adapter)
-            .convertWorld(world.toFile(), progress, cancel));
+        assertThrows(
+            InterruptedIOException.class,
+            () -> new VanillaToCCConverter(SectionAdapterDiscovery.eid(), adapter)
+                .convertWorld(world.toFile(), progress, cancel));
         assertEquals(33, columns.get());
         assertFalse(progress.isDone());
         assertArrayEquals(original, Files.readAllBytes(source));

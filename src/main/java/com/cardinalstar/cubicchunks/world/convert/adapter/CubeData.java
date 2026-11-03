@@ -18,7 +18,7 @@ public class CubeData implements MetaContainer {
 
     @Override
     public <T> T getMeta(MetaKey<T> key) {
-        //noinspection unchecked
+        // noinspection unchecked
         return (T) metadata.get(key);
     }
 

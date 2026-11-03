@@ -3,6 +3,7 @@ package com.cardinalstar.cubicchunks.world.convert.adapter.biome;
 import net.minecraft.nbt.NBTTagCompound;
 
 import com.cardinalstar.cubicchunks.CubicChunks;
+
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 public class VanillaBiomeAdapter implements BiomeAdapter {
@@ -13,7 +14,7 @@ public class VanillaBiomeAdapter implements BiomeAdapter {
     public void writeBiomeData(int[] biomeIds, NBTTagCompound level) {
         byte[] bytes = new byte[256];
 
-        for(int i = 0; i < 256; i++) {
+        for (int i = 0; i < 256; i++) {
             int biomeId = biomeIds[i];
 
             if ((biomeId & 0xFF) != biomeId) {
@@ -32,7 +33,7 @@ public class VanillaBiomeAdapter implements BiomeAdapter {
     public void readBiomeData(NBTTagCompound level, int[] biomeIds) {
         byte[] bytes = level.getByteArray("Biomes");
 
-        for(int i = 0; i < 256; i++) {
+        for (int i = 0; i < 256; i++) {
             biomeIds[i] = bytes[i] & 0xFF;
         }
     }

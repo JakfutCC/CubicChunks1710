@@ -275,7 +275,8 @@ public class DataUtils {
         }
     }
 
-    public static void shortToByteArray(short[] shortArray, int shortOffset, byte[] byteArray, int byteOffset, int shortCount) {
+    public static void shortToByteArray(short[] shortArray, int shortOffset, byte[] byteArray, int byteOffset,
+        int shortCount) {
         for (int i = 0; i < shortCount; i++) {
             short s = shortArray[shortOffset + i];
             byteArray[byteOffset + i * 2] = (byte) (s & 255);
@@ -283,12 +284,12 @@ public class DataUtils {
         }
     }
 
-    public static void byteToShortArray(byte[] byteArray, int byteOffset, short[] shortArray, int shortOffset, int byteCount) {
+    public static void byteToShortArray(byte[] byteArray, int byteOffset, short[] shortArray, int shortOffset,
+        int byteCount) {
         for (int i = 0; i < byteCount; i++) {
             byte b = byteArray[byteOffset + i];
-            shortArray[shortOffset + i / 2] = (short) (i % 2 == 0
-                ? (b & 255)
-                : (shortArray[shortOffset + i / 2] | ((b & 255) << 8)));
+            shortArray[shortOffset
+                + i / 2] = (short) (i % 2 == 0 ? (b & 255) : (shortArray[shortOffset + i / 2] | ((b & 255) << 8)));
         }
     }
 

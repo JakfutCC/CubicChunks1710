@@ -21,7 +21,7 @@ public class EIDBiomeAdapter implements BiomeAdapter {
     public void readBiomeData(NBTTagCompound level, int[] biomeIds) {
         short[] shorts = DataUtils.byteToShortArray(level.getByteArray("Biomes16v2"));
 
-        for(int i = 0; i < 256; i++) {
+        for (int i = 0; i < 256; i++) {
             biomeIds[i] = shorts[i] & 0xFFFF;
         }
     }

@@ -20,11 +20,15 @@ import javax.annotation.ParametersAreNonnullByDefault;
 public interface IWorldConverter {
 
     /** Convert all supported dimensions. Implementations may defer finalization until all have succeeded. */
-    default void convertWorld(File worldRoot, ConversionProgress progress, AtomicBoolean cancelSignal) throws IOException {
+    default void convertWorld(File worldRoot, ConversionProgress progress, AtomicBoolean cancelSignal)
+        throws IOException {
         for (Path dimension : dimensionRoots(worldRoot.toPath())) {
             checkCancelled(cancelSignal);
             boolean overworld = dimension.equals(worldRoot.toPath());
-            progress.setDimension(overworld ? "Overworld" : dimension.getFileName().toString());
+            progress.setDimension(
+                overworld ? "Overworld"
+                    : dimension.getFileName()
+                        .toString());
             convert(dimension.toFile(), overworld, progress, cancelSignal);
             checkCancelled(cancelSignal);
         }
@@ -35,8 +39,13 @@ public interface IWorldConverter {
         dimensions.add(worldRoot);
         try (Stream<Path> children = Files.list(worldRoot)) {
             children.filter(Files::isDirectory)
-                .filter(p -> p.getFileName().toString().startsWith("DIM")
-                    || p.getFileName().toString().startsWith("PERSONAL_DIM"))
+                .filter(
+                    p -> p.getFileName()
+                        .toString()
+                        .startsWith("DIM")
+                        || p.getFileName()
+                            .toString()
+                            .startsWith("PERSONAL_DIM"))
                 .sorted()
                 .forEach(dimensions::add);
         }
@@ -56,5 +65,6 @@ public interface IWorldConverter {
      * @param cancelSignal  check this periodically; abort cleanly if {@code true}
      * @throws IOException on unrecoverable I/O failure
      */
-    void convert(File dimensionRoot, boolean isOverworld, ConversionProgress progress, AtomicBoolean cancelSignal) throws IOException;
+    void convert(File dimensionRoot, boolean isOverworld, ConversionProgress progress, AtomicBoolean cancelSignal)
+        throws IOException;
 }

@@ -41,13 +41,15 @@ import com.cardinalstar.cubicchunks.world.convert.adapter.SectionAdapterDiscover
 import com.cardinalstar.cubicchunks.world.convert.adapter.biome.BiomeAdapter;
 import com.cardinalstar.cubicchunks.world.convert.adapter.biome.BiomeAdapterDiscovery;
 import com.cardinalstar.cubicchunks.world.cube.Cube;
+
 import it.unimi.dsi.fastutil.Pair;
 
 /**
  * Converts a vanilla Anvil world ({@code region/*.mca}) into CubicChunks format
  * ({@code region2d/}, {@code region3d/}, {@code data/cubicchunks.world_format.dat}).
  *
- * <p>Runs offline — no world or server instance is required.
+ * <p>
+ * Runs offline — no world or server instance is required.
  * Output is staged until every dimension succeeds. Original regions are retained
  * in {@code .cubicchunks-anvil-backup} after a successful conversion.
  */
@@ -55,10 +57,21 @@ import it.unimi.dsi.fastutil.Pair;
 public final class VanillaToCCConverter implements IWorldConverter {
 
     /** Vanilla chunk Level keys that are explicitly handled; all others are preserved as-is. */
-    private static final Set<String> VANILLA_CHUNK_LEVEL_KEYS = new HashSet<>(Arrays.asList(
-        "V", "xPos", "zPos", "LastUpdate", "TerrainPopulated", "LightPopulated",
-        "InhabitedTime", "Biomes", "HeightMap", "Sections", "Entities", "TileEntities", "TileTicks"
-    ));
+    private static final Set<String> VANILLA_CHUNK_LEVEL_KEYS = new HashSet<>(
+        Arrays.asList(
+            "V",
+            "xPos",
+            "zPos",
+            "LastUpdate",
+            "TerrainPopulated",
+            "LightPopulated",
+            "InhabitedTime",
+            "Biomes",
+            "HeightMap",
+            "Sections",
+            "Entities",
+            "TileEntities",
+            "TileTicks"));
 
     private final SectionAdapter sectionWriteAdapter;
     private final BiomeAdapter biomeWriteAdapter;
@@ -69,24 +82,35 @@ public final class VanillaToCCConverter implements IWorldConverter {
     }
 
     @Override
-    public void convert(File dimensionRoot, boolean isOverworld, ConversionProgress progress, AtomicBoolean cancelSignal) throws IOException {
-        convertDimensions(dimensionRoot.toPath(), Collections.singletonList(dimensionRoot.toPath()),
-            isOverworld, progress, cancelSignal);
+    public void convert(File dimensionRoot, boolean isOverworld, ConversionProgress progress,
+        AtomicBoolean cancelSignal) throws IOException {
+        convertDimensions(
+            dimensionRoot.toPath(),
+            Collections.singletonList(dimensionRoot.toPath()),
+            isOverworld,
+            progress,
+            cancelSignal);
     }
 
     @Override
-    public void convertWorld(File worldRoot, ConversionProgress progress, AtomicBoolean cancelSignal) throws IOException {
-        convertDimensions(worldRoot.toPath(), IWorldConverter.dimensionRoots(worldRoot.toPath()),
-            true, progress, cancelSignal);
+    public void convertWorld(File worldRoot, ConversionProgress progress, AtomicBoolean cancelSignal)
+        throws IOException {
+        convertDimensions(
+            worldRoot.toPath(),
+            IWorldConverter.dimensionRoots(worldRoot.toPath()),
+            true,
+            progress,
+            cancelSignal);
     }
 
-    private void convertDimensions(Path root, List<Path> dimensions, boolean writeMarker,
-                                   ConversionProgress progress, AtomicBoolean cancelSignal) throws IOException {
+    private void convertDimensions(Path root, List<Path> dimensions, boolean writeMarker, ConversionProgress progress,
+        AtomicBoolean cancelSignal) throws IOException {
         IWorldConverter.checkCancelled(cancelSignal);
         Path backup = root.resolve(".cubicchunks-anvil-backup");
         Path marker = root.resolve("data/cubicchunks.world_format.dat");
         if (Files.exists(backup) || Files.exists(marker)) {
-            throw new IOException("Existing CC conversion data or backup in " + root + "; restore or move it before retrying");
+            throw new IOException(
+                "Existing CC conversion data or backup in " + root + "; restore or move it before retrying");
         }
         for (Path dimension : dimensions) {
             if (Files.exists(dimension.resolve("region2d")) || Files.exists(dimension.resolve("region3d"))) {
@@ -105,7 +129,10 @@ public final class VanillaToCCConverter implements IWorldConverter {
         try {
             for (Path dimension : dimensions) {
                 IWorldConverter.checkCancelled(cancelSignal);
-                progress.setDimension(dimension.equals(root) ? "Overworld" : dimension.getFileName().toString());
+                progress.setDimension(
+                    dimension.equals(root) ? "Overworld"
+                        : dimension.getFileName()
+                            .toString());
                 Path output = staging.resolve(root.relativize(dimension));
                 if (convertDimension(dimension.toFile(), output, progress, cancelSignal)) converted.add(dimension);
             }
@@ -116,7 +143,11 @@ public final class VanillaToCCConverter implements IWorldConverter {
                 Files.createDirectory(backup);
                 backupCreated = true;
                 for (Path dimension : converted) {
-                    move(dimension.resolve("region"), backup.resolve(root.relativize(dimension)).resolve("region"), moves);
+                    move(
+                        dimension.resolve("region"),
+                        backup.resolve(root.relativize(dimension))
+                            .resolve("region"),
+                        moves);
                 }
                 for (Path dimension : converted) {
                     Path output = staging.resolve(root.relativize(dimension));
@@ -152,7 +183,8 @@ public final class VanillaToCCConverter implements IWorldConverter {
         try {
             deleteStaging(staging);
         } catch (IOException cleanupFailure) {
-            CubicChunks.LOGGER.warn("Conversion succeeded but could not remove staging directory {}", staging, cleanupFailure);
+            CubicChunks.LOGGER
+                .warn("Conversion succeeded but could not remove staging directory {}", staging, cleanupFailure);
         }
         progress.update(progress.getCompleted(), progress.getTotal(), "Done.");
     }
@@ -165,6 +197,7 @@ public final class VanillaToCCConverter implements IWorldConverter {
 
     private static void deleteStaging(Path path) throws IOException {
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) throws IOException {
                 Files.delete(file);
@@ -181,7 +214,7 @@ public final class VanillaToCCConverter implements IWorldConverter {
     }
 
     private boolean convertDimension(File dimensionRoot, Path output, ConversionProgress progress,
-                                     AtomicBoolean cancelSignal) throws IOException {
+        AtomicBoolean cancelSignal) throws IOException {
         File regionDir = new File(dimensionRoot, "region");
         File[] mcaFiles = regionDir.listFiles((d, n) -> n.endsWith(".mca"));
 
@@ -243,10 +276,8 @@ public final class VanillaToCCConverter implements IWorldConverter {
         return true;
     }
 
-    private void convertChunk(RegionFile regionFile, int localX, int localZ,
-                               int chunkX, int chunkZ,
-                               Map<ChunkCoordIntPair, NBTTagCompound> columns,
-                               Map<CubePos, NBTTagCompound> cubes) throws IOException {
+    private void convertChunk(RegionFile regionFile, int localX, int localZ, int chunkX, int chunkZ,
+        Map<ChunkCoordIntPair, NBTTagCompound> columns, Map<CubePos, NBTTagCompound> cubes) throws IOException {
         DataInputStream in = regionFile.getChunkDataInputStream(localX, localZ);
         if (in == null) throw new IOException("Cannot read saved chunk " + chunkX + "," + chunkZ);
 
@@ -273,28 +304,26 @@ public final class VanillaToCCConverter implements IWorldConverter {
             NBTTagCompound section = vanillaSections.getCompoundTagAt(i);
             int sectionY = section.getByte("Y") & 0xFF;
 
-            if (sectionY >= 16 || present[sectionY]) throw new IOException("Invalid or duplicate Anvil section " + sectionY);
+            if (sectionY >= 16 || present[sectionY])
+                throw new IOException("Invalid or duplicate Anvil section " + sectionY);
 
             present[sectionY] = true;
 
-            cubes.put(
-                new CubePos(chunkX, sectionY, chunkZ),
-                buildCubeNbt(level, section, chunkX, sectionY, chunkZ));
+            cubes.put(new CubePos(chunkX, sectionY, chunkZ), buildCubeNbt(level, section, chunkX, sectionY, chunkZ));
         }
 
         for (int sectionY = 0; sectionY < 16; sectionY++) {
             if (present[sectionY]) continue;
 
-            cubes.put(
-                new CubePos(chunkX, sectionY, chunkZ),
-                buildCubeNbt(level, null, chunkX, sectionY, chunkZ));
+            cubes.put(new CubePos(chunkX, sectionY, chunkZ), buildCubeNbt(level, null, chunkX, sectionY, chunkZ));
         }
 
         Set<Integer> extraSections = new HashSet<>();
         NBTTagList entities = level.getTagList("Entities", 10);
         int discardedEntities = 0;
         for (int i = entities.tagCount() - 1; i >= 0; i--) {
-            NBTTagList pos = entities.getCompoundTagAt(i).getTagList("Pos", 6);
+            NBTTagList pos = entities.getCompoundTagAt(i)
+                .getTagList("Pos", 6);
             if (pos.tagCount() != 3) throw new IOException("Entity without position in " + chunkX + "," + chunkZ);
             // Do not reserve empty terrain cubes for entities below the old world's floor.
             if (pos.func_150309_d(1) < 0) {
@@ -305,12 +334,14 @@ public final class VanillaToCCConverter implements IWorldConverter {
             extraSections.add((int) Math.floor(pos.func_150309_d(1) / 16));
         }
         if (discardedEntities > 0) {
-            CubicChunks.LOGGER.warn("Discarded {} entities below Y0 while converting chunk {},{}",
-                discardedEntities, chunkX, chunkZ);
+            CubicChunks.LOGGER
+                .warn("Discarded {} entities below Y0 while converting chunk {},{}", discardedEntities, chunkX, chunkZ);
         }
         for (String key : new String[] { "TileEntities", "TileTicks" }) {
             NBTTagList tags = level.getTagList(key, 10);
-            for (int i = 0; i < tags.tagCount(); i++) extraSections.add(tags.getCompoundTagAt(i).getInteger("y") >> 4);
+            for (int i = 0; i < tags.tagCount(); i++) extraSections.add(
+                tags.getCompoundTagAt(i)
+                    .getInteger("y") >> 4);
         }
         for (int sectionY : extraSections) {
             if (sectionY < 0 || sectionY >= 16) {
@@ -329,7 +360,8 @@ public final class VanillaToCCConverter implements IWorldConverter {
 
         int[] biomes = new int[256];
 
-        BiomeAdapterDiscovery.detect(vanillaLevel).readBiomeData(vanillaLevel, biomes);
+        BiomeAdapterDiscovery.detect(vanillaLevel)
+            .readBiomeData(vanillaLevel, biomes);
         biomeWriteAdapter.writeBiomeData(biomes, level);
 
         copyUnknownTags(vanillaLevel, level, VANILLA_CHUNK_LEVEL_KEYS);
@@ -340,7 +372,7 @@ public final class VanillaToCCConverter implements IWorldConverter {
     }
 
     private NBTTagCompound buildCubeNbt(NBTTagCompound vanillaLevel, @Nullable NBTTagCompound vanillaSection,
-                                         int chunkX, int sectionY, int chunkZ) {
+        int chunkX, int sectionY, int chunkZ) {
         NBTTagCompound level = new NBTTagCompound();
         level.setByte("v", (byte) 1);
         level.setInteger("x", chunkX);
@@ -353,7 +385,8 @@ public final class VanillaToCCConverter implements IWorldConverter {
 
         if (vanillaSection != null) {
             CubeData cubeData = new CubeData();
-            SectionAdapterDiscovery.detect(vanillaSection).readSectionData(vanillaSection, cubeData);
+            SectionAdapterDiscovery.detect(vanillaSection)
+                .readSectionData(vanillaSection, cubeData);
 
             NBTTagCompound sectionNbt = new NBTTagCompound();
             copyUnknownTags(vanillaSection, sectionNbt, SectionAdapterDiscovery.SECTION_MANAGED_KEYS);
@@ -376,7 +409,10 @@ public final class VanillaToCCConverter implements IWorldConverter {
     private static void copyUnknownTags(NBTTagCompound src, NBTTagCompound dst, Set<String> exclude) {
         for (String key : src.func_150296_c()) {
             if (!exclude.contains(key)) {
-                dst.setTag(key, src.getTag(key).copy());
+                dst.setTag(
+                    key,
+                    src.getTag(key)
+                        .copy());
             }
         }
     }
@@ -433,7 +469,8 @@ public final class VanillaToCCConverter implements IWorldConverter {
     private int countChunks(File[] mcaFiles) throws IOException {
         int count = 0;
         for (File mcaFile : mcaFiles) {
-            if (parseRegionCoords(mcaFile.getName()) == null) throw new IOException("Invalid Anvil region filename " + mcaFile);
+            if (parseRegionCoords(mcaFile.getName()) == null)
+                throw new IOException("Invalid Anvil region filename " + mcaFile);
             long size = Files.size(mcaFile.toPath());
             // RegionFile opens in read/write mode and would pad a truncated input file.
             if (size < 8192 || (size & 4095) != 0) throw new IOException("Truncated Anvil region " + mcaFile);
@@ -453,7 +490,8 @@ public final class VanillaToCCConverter implements IWorldConverter {
      */
     private static int[] parseRegionCoords(String name) {
         if (!name.startsWith("r.") || !name.endsWith(".mca")) return null;
-        String[] parts = name.substring(2, name.length() - 4).split("\\.");
+        String[] parts = name.substring(2, name.length() - 4)
+            .split("\\.");
         if (parts.length != 2) return null;
         try {
             return new int[] { Integer.parseInt(parts[0]), Integer.parseInt(parts[1]) };

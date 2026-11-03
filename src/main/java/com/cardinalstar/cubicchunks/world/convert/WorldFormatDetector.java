@@ -20,8 +20,8 @@ public final class WorldFormatDetector {
         boolean vanilla = hasVanillaRegions(worldSaveDir);
 
         if (cc && vanilla) return WorldSaveFormat.MIXED;
-        if (cc)            return WorldSaveFormat.CC;
-        if (vanilla)       return WorldSaveFormat.VANILLA;
+        if (cc) return WorldSaveFormat.CC;
+        if (vanilla) return WorldSaveFormat.VANILLA;
         return WorldSaveFormat.UNKNOWN;
     }
 

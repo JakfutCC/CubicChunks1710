@@ -8,7 +8,7 @@ import net.minecraft.world.chunk.NibbleArray;
 
 public class EIDSectionAdapter implements SectionAdapter {
 
-    EIDSectionAdapter() { }
+    EIDSectionAdapter() {}
 
     @Override
     public void writeSectionData(CubeData data, NBTTagCompound section) {
@@ -141,7 +141,9 @@ public class EIDSectionAdapter implements SectionAdapter {
         if (section.hasKey("Blocks16")) {
             var blocks16 = section.getByteArray("Blocks16");
             var blocksShort = new short[blocks16.length >>> 1];
-            ByteBuffer.wrap(blocks16).asShortBuffer().get(blocksShort);
+            ByteBuffer.wrap(blocks16)
+                .asShortBuffer()
+                .get(blocksShort);
 
             for (int i = 0; i < blocksShort.length; i++) {
                 data.blocks[i] = blocksShort[i] & 0xFFFF;
@@ -153,7 +155,9 @@ public class EIDSectionAdapter implements SectionAdapter {
         if (section.hasKey("Data16")) {
             var data16 = section.getByteArray("Data16");
             var dataShort = new short[data16.length >>> 1];
-            ByteBuffer.wrap(data16).asShortBuffer().get(dataShort);
+            ByteBuffer.wrap(data16)
+                .asShortBuffer()
+                .get(dataShort);
 
             for (int i = 0; i < dataShort.length; i++) {
                 data.meta[i] = dataShort[i] & 0xFFFF;
@@ -163,8 +167,8 @@ public class EIDSectionAdapter implements SectionAdapter {
         }
 
         NibbleArray blockLightIn = new NibbleArray(section.getByteArray("BlockLight"), 4);
-        NibbleArray skyLightIn = section.hasKey("SkyLight", 7)
-            ? new NibbleArray(section.getByteArray("SkyLight"), 4) : null;
+        NibbleArray skyLightIn = section.hasKey("SkyLight", 7) ? new NibbleArray(section.getByteArray("SkyLight"), 4)
+            : null;
 
         for (int y = 0; y < 16; y++) {
             for (int z = 0; z < 16; z++) {
@@ -185,7 +189,8 @@ public class EIDSectionAdapter implements SectionAdapter {
 
     private static void readMeta(NBTTagCompound section, CubeData data) {
         if (section.hasKey("Data16")) {
-            ShortBuffer blocks = ByteBuffer.wrap(section.getByteArray("Data16")).asShortBuffer();
+            ShortBuffer blocks = ByteBuffer.wrap(section.getByteArray("Data16"))
+                .asShortBuffer();
 
             for (int y = 0; y < 16; y++) {
                 for (int z = 0; z < 16; z++) {
@@ -222,12 +227,13 @@ public class EIDSectionAdapter implements SectionAdapter {
                     }
                 }
             }
-    }
+        }
     }
 
     private static void readEIDBlockIds(NBTTagCompound section, CubeData data) {
         if (section.hasKey("Blocks16")) {
-            ShortBuffer blocks = ByteBuffer.wrap(section.getByteArray("Blocks16")).asShortBuffer();
+            ShortBuffer blocks = ByteBuffer.wrap(section.getByteArray("Blocks16"))
+                .asShortBuffer();
 
             for (int y = 0; y < 16; y++) {
                 for (int z = 0; z < 16; z++) {
@@ -241,7 +247,9 @@ public class EIDSectionAdapter implements SectionAdapter {
         } else {
             byte[] lsbIn = section.getByteArray("Blocks");
             NibbleArray msbIn = section.hasKey("Add", 7) ? new NibbleArray(section.getByteArray("Add"), 4) : null;
-            NibbleArray b2HighIn = section.hasKey("BlocksB2Hi", 7) ? new NibbleArray(section.getByteArray("BlocksB2Hi"), 4) : null;
+            NibbleArray b2HighIn = section.hasKey("BlocksB2Hi", 7)
+                ? new NibbleArray(section.getByteArray("BlocksB2Hi"), 4)
+                : null;
             byte[] b3In = section.hasKey("BlocksB3", 7) ? section.getByteArray("BlocksB3") : null;
 
             for (int y = 0; y < 16; y++) {

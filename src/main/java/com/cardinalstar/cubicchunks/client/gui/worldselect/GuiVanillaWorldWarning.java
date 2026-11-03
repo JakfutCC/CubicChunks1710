@@ -11,7 +11,6 @@ import net.minecraft.client.resources.I18n;
 
 import com.cardinalstar.cubicchunks.client.gui.convert.GuiConvertWorld;
 import com.cardinalstar.cubicchunks.mixin.early.client.AccessorGuiSelectWorld;
-import com.cardinalstar.cubicchunks.world.convert.WorldFormatDetector;
 import com.cardinalstar.cubicchunks.world.convert.WorldSaveFormat;
 
 /**
@@ -23,8 +22,8 @@ import com.cardinalstar.cubicchunks.world.convert.WorldSaveFormat;
 public class GuiVanillaWorldWarning extends GuiScreen {
 
     private static final int BTN_LOAD_ANYWAY = 0;
-    private static final int BTN_CONVERT     = 1;
-    private static final int BTN_CANCEL      = 2;
+    private static final int BTN_CONVERT = 1;
+    private static final int BTN_CANCEL = 2;
 
     private final GuiSelectWorld worldSelectParent;
     private final int worldIndex;
@@ -45,12 +44,23 @@ public class GuiVanillaWorldWarning extends GuiScreen {
     public void initGui() {
         buttonList.clear();
 
-        buttonList.add(new GuiButton(BTN_LOAD_ANYWAY, width / 2 - 154, height - 38, 100, 20,
-            I18n.format("cubicchunks.gui.warning.vanilla_world.load_anyway")));
-        buttonList.add(new GuiButton(BTN_CONVERT, width / 2 - 50, height - 38, 100, 20,
-            I18n.format("cubicchunks.gui.warning.vanilla_world.convert")));
-        buttonList.add(new GuiButton(BTN_CANCEL, width / 2 + 54, height - 38, 100, 20,
-            I18n.format("gui.cancel")));
+        buttonList.add(
+            new GuiButton(
+                BTN_LOAD_ANYWAY,
+                width / 2 - 154,
+                height - 38,
+                100,
+                20,
+                I18n.format("cubicchunks.gui.warning.vanilla_world.load_anyway")));
+        buttonList.add(
+            new GuiButton(
+                BTN_CONVERT,
+                width / 2 - 50,
+                height - 38,
+                100,
+                20,
+                I18n.format("cubicchunks.gui.warning.vanilla_world.convert")));
+        buttonList.add(new GuiButton(BTN_CANCEL, width / 2 + 54, height - 38, 100, 20, I18n.format("gui.cancel")));
     }
 
     @Override
@@ -63,7 +73,9 @@ public class GuiVanillaWorldWarning extends GuiScreen {
 
             case BTN_CONVERT: {
                 String fileName = ((AccessorGuiSelectWorld) worldSelectParent).invokeFunc_146621_a(worldIndex);
-                File worldDir = mc.getSaveLoader().getSaveLoader(fileName, false).getWorldDirectory();
+                File worldDir = mc.getSaveLoader()
+                    .getSaveLoader(fileName, false)
+                    .getWorldDirectory();
                 mc.displayGuiScreen(new GuiConvertWorld(worldSelectParent, fileName, worldDir, format));
                 break;
             }
@@ -78,13 +90,19 @@ public class GuiVanillaWorldWarning extends GuiScreen {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
 
-        drawCenteredString(fontRendererObj,
+        drawCenteredString(
+            fontRendererObj,
             I18n.format("cubicchunks.gui.warning.vanilla_world.title"),
-            width / 2, height / 2 - 30, 0xFF5555);
+            width / 2,
+            height / 2 - 30,
+            0xFF5555);
 
-        drawCenteredString(fontRendererObj,
+        drawCenteredString(
+            fontRendererObj,
             I18n.format("cubicchunks.gui.warning.vanilla_world.body"),
-            width / 2, height / 2 - 10, 0xFFFFFF);
+            width / 2,
+            height / 2 - 10,
+            0xFFFFFF);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }

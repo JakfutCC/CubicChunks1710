@@ -1,9 +1,7 @@
 package com.cardinalstar.cubicchunks.world.convert.adapter;
 
-import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.chunk.NibbleArray;
-import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
 public class VanillaSectionAdapter implements SectionAdapter {
 
@@ -89,7 +87,8 @@ public class VanillaSectionAdapter implements SectionAdapter {
         NibbleArray metaIn = new NibbleArray(section.getByteArray("Data"), 4);
         NibbleArray blockLightIn = new NibbleArray(section.getByteArray("BlockLight"), 4);
         // SkyLight is absent in non-overworld dimensions
-        NibbleArray skyLightIn = section.hasKey("SkyLight", 7) ? new NibbleArray(section.getByteArray("SkyLight"), 4) : null;
+        NibbleArray skyLightIn = section.hasKey("SkyLight", 7) ? new NibbleArray(section.getByteArray("SkyLight"), 4)
+            : null;
 
         for (int y = 0; y < 16; y++) {
             for (int z = 0; z < 16; z++) {

@@ -23,8 +23,12 @@ public class BiomeAdapterDiscovery {
     }
 
     /** Returns the singleton {@link VanillaSectionAdapter}. */
-    public static BiomeAdapter vanilla() { return VANILLA; }
+    public static BiomeAdapter vanilla() {
+        return VANILLA;
+    }
 
     /** Returns the singleton {@link EIDSectionAdapter}. */
-    public static BiomeAdapter eid()     { return EID; }
+    public static BiomeAdapter eid() {
+        return EID;
+    }
 }

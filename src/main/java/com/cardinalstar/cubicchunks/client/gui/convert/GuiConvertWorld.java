@@ -22,33 +22,44 @@ public class GuiConvertWorld extends GuiScreen implements GuiYesNoCallback {
 
     /** Identifies which container format the conversion will produce. */
     public enum ConversionTarget {
-        CC(      "cubicchunks.format.cc"),
-        VANILLA( "cubicchunks.format.vanilla");
+
+        CC("cubicchunks.format.cc"),
+        VANILLA("cubicchunks.format.vanilla");
 
         final String langKey;
 
-        ConversionTarget(String langKey) { this.langKey = langKey; }
+        ConversionTarget(String langKey) {
+            this.langKey = langKey;
+        }
 
-        public String getDisplayName() { return I18n.format(langKey); }
+        public String getDisplayName() {
+            return I18n.format(langKey);
+        }
     }
 
     /** Identifies which block encoding the output sections will use. */
     public enum BlockFormat {
+
         VANILLA("cubicchunks.format.block.vanilla"),
-        EID(    "cubicchunks.format.block.eid");
+        EID("cubicchunks.format.block.eid");
 
         final String langKey;
 
-        BlockFormat(String langKey) { this.langKey = langKey; }
+        BlockFormat(String langKey) {
+            this.langKey = langKey;
+        }
 
-        public String getDisplayName() { return I18n.format(langKey); }
+        public String getDisplayName() {
+            return I18n.format(langKey);
+        }
     }
 
     /**
      * A button that renders with the highlighted (hover) texture when selected,
      * giving a "pressed in" appearance for radio-style groups.
      *
-     * <p>{@code getHoverState} is final in {@link GuiButton}, so we force the hover
+     * <p>
+     * {@code getHoverState} is final in {@link GuiButton}, so we force the hover
      * appearance by faking a mouse position inside the button bounds when selected.
      */
     private static class ToggleButton extends GuiButton {
@@ -59,7 +70,9 @@ public class GuiConvertWorld extends GuiScreen implements GuiYesNoCallback {
             super(id, x, y, w, h, text);
         }
 
-        void setSelected(boolean selected) { this.selected = selected; }
+        void setSelected(boolean selected) {
+            this.selected = selected;
+        }
 
         @Override
         public void drawButton(net.minecraft.client.Minecraft mc, int mouseX, int mouseY) {
@@ -67,12 +80,12 @@ public class GuiConvertWorld extends GuiScreen implements GuiYesNoCallback {
         }
     }
 
-    private static final int BTN_CONVERT       = 1;
-    private static final int BTN_BACK          = 0;
-    private static final int BTN_CC            = 10;
-    private static final int BTN_VANILLA       = 11;
+    private static final int BTN_CONVERT = 1;
+    private static final int BTN_BACK = 0;
+    private static final int BTN_CC = 10;
+    private static final int BTN_VANILLA = 11;
     private static final int BTN_BLOCK_VANILLA = 12;
-    private static final int BTN_BLOCK_EID     = 13;
+    private static final int BTN_BLOCK_EID = 13;
 
     private final GuiScreen parent;
     private final String worldFileName;
@@ -88,8 +101,7 @@ public class GuiConvertWorld extends GuiScreen implements GuiYesNoCallback {
     private ToggleButton blockVanillaButton;
     private ToggleButton blockEidButton;
 
-    public GuiConvertWorld(GuiScreen parent, String worldFileName, File worldDir,
-                            WorldSaveFormat currentFormat) {
+    public GuiConvertWorld(GuiScreen parent, String worldFileName, File worldDir, WorldSaveFormat currentFormat) {
         this.parent = parent;
         this.worldFileName = worldFileName;
         this.worldDir = worldDir;
@@ -99,37 +111,62 @@ public class GuiConvertWorld extends GuiScreen implements GuiYesNoCallback {
     @Override
     public void initGui() {
         buttonList.clear();
-        ccButton     = null;
+        ccButton = null;
         vanillaButton = null;
 
-        convertButton = new GuiButton(BTN_CONVERT, width / 2 - 100, height - 52, 200, 20,
+        convertButton = new GuiButton(
+            BTN_CONVERT,
+            width / 2 - 100,
+            height - 52,
+            200,
+            20,
             I18n.format("cubicchunks.gui.convert.convert"));
         convertButton.enabled = selectedTarget != null;
         buttonList.add(convertButton);
 
-        buttonList.add(new GuiButton(BTN_BACK, width / 2 - 100, height - 28, 200, 20,
-            I18n.format("cubicchunks.gui.convert.back")));
+        buttonList.add(
+            new GuiButton(
+                BTN_BACK,
+                width / 2 - 100,
+                height - 28,
+                200,
+                20,
+                I18n.format("cubicchunks.gui.convert.back")));
 
         int targetY = height / 2 - 32;
 
-        ccButton = new ToggleButton(BTN_CC, width / 2 - 100, targetY, 200, 20,
-            ConversionTarget.CC.getDisplayName());
+        ccButton = new ToggleButton(BTN_CC, width / 2 - 100, targetY, 200, 20, ConversionTarget.CC.getDisplayName());
         ccButton.setSelected(currentFormat == WorldSaveFormat.CC);
         buttonList.add(ccButton);
         targetY += 24;
 
-        vanillaButton = new ToggleButton(BTN_VANILLA, width / 2 - 100, targetY, 200, 20,
+        vanillaButton = new ToggleButton(
+            BTN_VANILLA,
+            width / 2 - 100,
+            targetY,
+            200,
+            20,
             ConversionTarget.VANILLA.getDisplayName());
         vanillaButton.setSelected(currentFormat == WorldSaveFormat.VANILLA);
         buttonList.add(vanillaButton);
 
         int blockY = height / 2 + 36;
-        blockVanillaButton = new ToggleButton(BTN_BLOCK_VANILLA, width / 2 - 100, blockY, 200, 20,
+        blockVanillaButton = new ToggleButton(
+            BTN_BLOCK_VANILLA,
+            width / 2 - 100,
+            blockY,
+            200,
+            20,
             BlockFormat.VANILLA.getDisplayName());
         blockVanillaButton.setSelected(selectedBlockFormat == BlockFormat.VANILLA);
         buttonList.add(blockVanillaButton);
 
-        blockEidButton = new ToggleButton(BTN_BLOCK_EID, width / 2 - 100, blockY + 24, 200, 20,
+        blockEidButton = new ToggleButton(
+            BTN_BLOCK_EID,
+            width / 2 - 100,
+            blockY + 24,
+            200,
+            20,
             BlockFormat.EID.getDisplayName());
         blockEidButton.setSelected(selectedBlockFormat == BlockFormat.EID);
         buttonList.add(blockEidButton);
@@ -175,15 +212,15 @@ public class GuiConvertWorld extends GuiScreen implements GuiYesNoCallback {
         if (button.id == BTN_CONVERT && selectedTarget != null) {
             String prompt = I18n.format("cubicchunks.gui.convert.backup_prompt");
             String confirm = I18n.format("cubicchunks.gui.convert.backup_yes");
-            mc.displayGuiScreen(new GuiYesNo(this, prompt, "", confirm,
-                I18n.format("gui.cancel"), 0));
+            mc.displayGuiScreen(new GuiYesNo(this, prompt, "", confirm, I18n.format("gui.cancel"), 0));
         }
     }
 
     @Override
     public void confirmClicked(boolean result, int id) {
         if (result && selectedTarget != null) {
-            mc.displayGuiScreen(new GuiConvertProgress(parent, worldDir, currentFormat, selectedTarget, selectedBlockFormat));
+            mc.displayGuiScreen(
+                new GuiConvertProgress(parent, worldDir, currentFormat, selectedTarget, selectedBlockFormat));
         } else {
             mc.displayGuiScreen(this);
         }
@@ -193,30 +230,43 @@ public class GuiConvertWorld extends GuiScreen implements GuiYesNoCallback {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
 
-        drawCenteredString(fontRendererObj,
+        drawCenteredString(
+            fontRendererObj,
             I18n.format("cubicchunks.gui.convert.title", worldFileName),
-            width / 2, 20, 0xFFFFFF);
+            width / 2,
+            20,
+            0xFFFFFF);
 
         String sourceLabel = I18n.format("cubicchunks.gui.convert.source", formatName(currentFormat));
         drawCenteredString(fontRendererObj, sourceLabel, width / 2, 36, 0xAAAAAA);
 
-        drawCenteredString(fontRendererObj,
+        drawCenteredString(
+            fontRendererObj,
             I18n.format("cubicchunks.gui.convert.target_label"),
-            width / 2, height / 2 - 48, 0xFFFFFF);
+            width / 2,
+            height / 2 - 48,
+            0xFFFFFF);
 
-        drawCenteredString(fontRendererObj,
+        drawCenteredString(
+            fontRendererObj,
             I18n.format("cubicchunks.gui.convert.block_format_label"),
-            width / 2, height / 2 + 20, 0xFFFFFF);
+            width / 2,
+            height / 2 + 20,
+            0xFFFFFF);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
     private static String formatName(WorldSaveFormat format) {
         switch (format) {
-            case CC:      return I18n.format("cubicchunks.format.cc");
-            case VANILLA: return I18n.format("cubicchunks.format.vanilla");
-            case MIXED:   return "Mixed";
-            default:      return "Unknown";
+            case CC:
+                return I18n.format("cubicchunks.format.cc");
+            case VANILLA:
+                return I18n.format("cubicchunks.format.vanilla");
+            case MIXED:
+                return "Mixed";
+            default:
+                return "Unknown";
         }
     }
 }

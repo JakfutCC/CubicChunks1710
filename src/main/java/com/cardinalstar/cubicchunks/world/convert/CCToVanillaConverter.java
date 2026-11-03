@@ -33,15 +33,18 @@ import com.cardinalstar.cubicchunks.world.convert.adapter.SectionAdapterDiscover
 import com.cardinalstar.cubicchunks.world.convert.adapter.biome.BiomeAdapter;
 import com.cardinalstar.cubicchunks.world.convert.adapter.biome.BiomeAdapterDiscovery;
 import com.cardinalstar.cubicchunks.world.heightmap.HeightMap3D;
+
 import io.netty.buffer.Unpooled;
 
 /**
  * Converts a CubicChunks world into vanilla Anvil format ({@code region/*.mca}).
  *
- * <p>Only cubes with Y in [0, 15] (blocks 0–255) are written; cubes outside that
+ * <p>
+ * Only cubes with Y in [0, 15] (blocks 0–255) are written; cubes outside that
  * range are silently skipped since vanilla cannot represent them.
  *
- * <p>Runs offline — no world or server instance is required.
+ * <p>
+ * Runs offline — no world or server instance is required.
  */
 @ParametersAreNonnullByDefault
 public final class CCToVanillaConverter implements IWorldConverter {
@@ -51,9 +54,17 @@ public final class CCToVanillaConverter implements IWorldConverter {
     private static final int VANILLA_CUBE_MAX_Y = 15;
 
     /** CC column Level keys that are explicitly handled; all others are preserved as-is. */
-    private static final Set<String> CC_COLUMN_LEVEL_KEYS = new HashSet<>(Arrays.asList(
-        "v", "x", "z", "InhabitedTime", "Biomes", "Biomes16v2", "OpacityIndex", "HeightMap", "HeightMap3D"
-    ));
+    private static final Set<String> CC_COLUMN_LEVEL_KEYS = new HashSet<>(
+        Arrays.asList(
+            "v",
+            "x",
+            "z",
+            "InhabitedTime",
+            "Biomes",
+            "Biomes16v2",
+            "OpacityIndex",
+            "HeightMap",
+            "HeightMap3D"));
 
     private final SectionAdapter sectionWriteAdapter;
     private final BiomeAdapter biomeWriteAdapter;
@@ -64,7 +75,8 @@ public final class CCToVanillaConverter implements IWorldConverter {
     }
 
     @Override
-    public void convert(File dimensionRoot, boolean isOverworld, ConversionProgress progress, AtomicBoolean cancelSignal) throws IOException {
+    public void convert(File dimensionRoot, boolean isOverworld, ConversionProgress progress,
+        AtomicBoolean cancelSignal) throws IOException {
         Path worldPath = dimensionRoot.toPath();
 
         LinkedHashSet<ChunkCoordIntPair> columns = new LinkedHashSet<>();
@@ -92,12 +104,20 @@ public final class CCToVanillaConverter implements IWorldConverter {
             RegionFileCache.clearRegionFileReferences();
         }
 
-        deleteRecursively(worldPath.resolve("region2d").toFile());
-        deleteRecursively(worldPath.resolve("region3d").toFile());
+        deleteRecursively(
+            worldPath.resolve("region2d")
+                .toFile());
+        deleteRecursively(
+            worldPath.resolve("region3d")
+                .toFile());
 
         if (isOverworld) {
-            deleteIfExists(worldPath.resolve("data").resolve("cubicChunksData.dat"));
-            deleteIfExists(worldPath.resolve("data").resolve("cubicchunks.world_format.dat"));
+            deleteIfExists(
+                worldPath.resolve("data")
+                    .resolve("cubicChunksData.dat"));
+            deleteIfExists(
+                worldPath.resolve("data")
+                    .resolve("cubicchunks.world_format.dat"));
         }
 
         progress.update(progress.getCompleted(), progress.getTotal(), "Done.");
@@ -111,10 +131,10 @@ public final class CCToVanillaConverter implements IWorldConverter {
         int chunkX = colPos.chunkXPos;
         int chunkZ = colPos.chunkZPos;
 
-        NBTTagList sections   = new NBTTagList();
-        NBTTagList entities   = new NBTTagList();
+        NBTTagList sections = new NBTTagList();
+        NBTTagList entities = new NBTTagList();
         NBTTagList tileEntities = new NBTTagList();
-        NBTTagList tileTicks  = new NBTTagList();
+        NBTTagList tileTicks = new NBTTagList();
 
         for (int cubeY = VANILLA_CUBE_MIN_Y; cubeY <= VANILLA_CUBE_MAX_Y; cubeY++) {
             NBTTagCompound cubeNbt = storage.readCube(new CubePos(chunkX, cubeY, chunkZ));
@@ -128,8 +148,14 @@ public final class CCToVanillaConverter implements IWorldConverter {
             mergeList(cubeLevel.getTagList("TileTicks", 10), tileTicks);
         }
 
-        NBTTagCompound level = buildVanillaLevel(columnLevel, chunkX, chunkZ, sections,
-            entities, tileEntities, tileTicks);
+        NBTTagCompound level = buildVanillaLevel(
+            columnLevel,
+            chunkX,
+            chunkZ,
+            sections,
+            entities,
+            tileEntities,
+            tileTicks);
 
         NBTTagCompound root = new NBTTagCompound();
         root.setTag("Level", level);
@@ -147,7 +173,8 @@ public final class CCToVanillaConverter implements IWorldConverter {
         if (!cubeSection.hasKey("Blocks")) return;
 
         CubeData cubeData = new CubeData();
-        SectionAdapterDiscovery.detect(cubeSection).readSectionData(cubeSection, cubeData);
+        SectionAdapterDiscovery.detect(cubeSection)
+            .readSectionData(cubeSection, cubeData);
 
         NBTTagCompound section = new NBTTagCompound();
         section.setByte("Y", (byte) (cubeY & 0xFF));
@@ -157,9 +184,8 @@ public final class CCToVanillaConverter implements IWorldConverter {
         sections.appendTag(section);
     }
 
-    private NBTTagCompound buildVanillaLevel(NBTTagCompound columnLevel, int chunkX, int chunkZ,
-                                              NBTTagList sections, NBTTagList entities,
-                                              NBTTagList tileEntities, NBTTagList tileTicks) {
+    private NBTTagCompound buildVanillaLevel(NBTTagCompound columnLevel, int chunkX, int chunkZ, NBTTagList sections,
+        NBTTagList entities, NBTTagList tileEntities, NBTTagList tileTicks) {
         NBTTagCompound level = new NBTTagCompound();
 
         level.setByte("V", (byte) 1);
@@ -172,7 +198,8 @@ public final class CCToVanillaConverter implements IWorldConverter {
 
         int[] biomes = new int[256];
 
-        BiomeAdapterDiscovery.detect(columnLevel).readBiomeData(columnLevel, biomes);
+        BiomeAdapterDiscovery.detect(columnLevel)
+            .readBiomeData(columnLevel, biomes);
         biomeWriteAdapter.writeBiomeData(biomes, level);
 
         level.setIntArray("HeightMap", buildHeightMap(columnLevel.getByteArray("HeightMap3D")));
@@ -195,7 +222,10 @@ public final class CCToVanillaConverter implements IWorldConverter {
                     CubicChunks.LOGGER.warn("Copying unknown tag: {}", key);
                 }
 
-                dst.setTag(key, src.getTag(key).copy());
+                dst.setTag(
+                    key,
+                    src.getTag(key)
+                        .copy());
             }
         }
     }
@@ -219,7 +249,9 @@ public final class CCToVanillaConverter implements IWorldConverter {
 
     private void mergeList(NBTTagList src, NBTTagList dst) {
         for (int i = 0; i < src.tagCount(); i++) {
-            dst.appendTag(src.getCompoundTagAt(i).copy());
+            dst.appendTag(
+                src.getCompoundTagAt(i)
+                    .copy());
         }
     }
 }

@@ -13,10 +13,10 @@ import javax.annotation.Nullable;
 public final class ConversionProgress {
 
     private final AtomicInteger completed = new AtomicInteger(0);
-    private final AtomicInteger total     = new AtomicInteger(0);
+    private final AtomicInteger total = new AtomicInteger(0);
     private final AtomicReference<String> dimName = new AtomicReference<>("");
     private final AtomicReference<String> status = new AtomicReference<>("");
-    private final AtomicBoolean done    = new AtomicBoolean(false);
+    private final AtomicBoolean done = new AtomicBoolean(false);
     private final AtomicBoolean errored = new AtomicBoolean(false);
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
@@ -42,11 +42,17 @@ public final class ConversionProgress {
         this.errored.set(true);
     }
 
-    public int getCompleted() { return completed.get(); }
+    public int getCompleted() {
+        return completed.get();
+    }
 
-    public int getTotal() { return total.get(); }
+    public int getTotal() {
+        return total.get();
+    }
 
-    public String getStatus() { return dimName.get() + status.get(); }
+    public String getStatus() {
+        return dimName.get() + status.get();
+    }
 
     /** Progress as a fraction 0.0–1.0. Returns 0 if total is unknown. */
     public float getPercent() {
@@ -54,14 +60,24 @@ public final class ConversionProgress {
         return t == 0 ? 0f : (float) completed.get() / t;
     }
 
-    public boolean isDone()    { return done.get(); }
+    public boolean isDone() {
+        return done.get();
+    }
 
-    public boolean isErrored() { return errored.get(); }
+    public boolean isErrored() {
+        return errored.get();
+    }
 
-    public void markCancelled() { cancelled.set(true); }
+    public void markCancelled() {
+        cancelled.set(true);
+    }
 
-    public boolean isCancelled() { return cancelled.get(); }
+    public boolean isCancelled() {
+        return cancelled.get();
+    }
 
     @Nullable
-    public String getErrorMessage() { return errorMessage; }
+    public String getErrorMessage() {
+        return errorMessage;
+    }
 }

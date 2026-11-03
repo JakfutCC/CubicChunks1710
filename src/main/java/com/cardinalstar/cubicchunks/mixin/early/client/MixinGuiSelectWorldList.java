@@ -10,9 +10,7 @@ import net.minecraft.client.gui.GuiSlot;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.world.storage.SaveFormatComparator;
 
-import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -33,9 +31,8 @@ public abstract class MixinGuiSelectWorldList {
      * {@code drawSlot} is executing.
      */
     @Inject(method = "drawSlot", at = @At("TAIL"))
-    private void drawFormatBadge(int index, int x, int y, int height,
-                                  Tessellator tessellator, int mouseX, int mouseY,
-                                  CallbackInfo ci) {
+    private void drawFormatBadge(int index, int x, int y, int height, Tessellator tessellator, int mouseX, int mouseY,
+        CallbackInfo ci) {
 
         Minecraft mc = Minecraft.getMinecraft();
 
@@ -48,9 +45,11 @@ public abstract class MixinGuiSelectWorldList {
 
         if (index < 0 || index >= worlds.size()) return;
 
-        String fileName = worlds.get(index).getFileName();
+        String fileName = worlds.get(index)
+            .getFileName();
         WorldSaveFormat format = WorldFormatBadgeRenderer.getCachedFormat(mc, fileName);
 
-        WorldFormatBadgeRenderer.drawBadge(((AccessorGuiScreen) gsw).getFontRendererObj(), format, x, y, upper.getListWidth());
+        WorldFormatBadgeRenderer
+            .drawBadge(((AccessorGuiScreen) gsw).getFontRendererObj(), format, x, y, upper.getListWidth());
     }
 }

@@ -18,15 +18,16 @@ import com.cardinalstar.cubicchunks.world.convert.ConversionProgress;
 import com.cardinalstar.cubicchunks.world.convert.IWorldConverter;
 import com.cardinalstar.cubicchunks.world.convert.VanillaToCCConverter;
 import com.cardinalstar.cubicchunks.world.convert.WorldSaveFormat;
-import com.cardinalstar.cubicchunks.world.convert.adapter.SectionAdapterDiscovery;
 import com.cardinalstar.cubicchunks.world.convert.adapter.SectionAdapter;
+import com.cardinalstar.cubicchunks.world.convert.adapter.SectionAdapterDiscovery;
 import com.cardinalstar.cubicchunks.world.convert.adapter.biome.BiomeAdapter;
 import com.cardinalstar.cubicchunks.world.convert.adapter.biome.BiomeAdapterDiscovery;
 
 /**
  * Shows a progress bar while a world format conversion runs on a background thread.
  *
- * <p>Opened by {@link GuiConvertWorld} after the user confirms the backup warning.
+ * <p>
+ * Opened by {@link GuiConvertWorld} after the user confirms the backup warning.
  */
 @ParametersAreNonnullByDefault
 public class GuiConvertProgress extends GuiScreen {
@@ -46,8 +47,7 @@ public class GuiConvertProgress extends GuiScreen {
     private boolean shownResult = false;
 
     public GuiConvertProgress(GuiScreen parent, File worldDir, WorldSaveFormat sourceFormat,
-                               ConversionTarget targetFormat, BlockFormat blockFormat
-    ) {
+        ConversionTarget targetFormat, BlockFormat blockFormat) {
         this.parent = parent;
         this.worldDir = worldDir;
         this.sourceFormat = sourceFormat;
@@ -56,12 +56,10 @@ public class GuiConvertProgress extends GuiScreen {
     }
 
     private IWorldConverter buildConverter(ConversionTarget target) {
-        SectionAdapter sectionWriteAdapter = blockFormat == BlockFormat.EID
-            ? SectionAdapterDiscovery.eid()
+        SectionAdapter sectionWriteAdapter = blockFormat == BlockFormat.EID ? SectionAdapterDiscovery.eid()
             : SectionAdapterDiscovery.vanilla();
 
-        BiomeAdapter biomeWriteAdapter = blockFormat == BlockFormat.EID
-            ? BiomeAdapterDiscovery.eid()
+        BiomeAdapter biomeWriteAdapter = blockFormat == BlockFormat.EID ? BiomeAdapterDiscovery.eid()
             : BiomeAdapterDiscovery.vanilla();
 
         if (target == ConversionTarget.VANILLA) {
@@ -74,8 +72,14 @@ public class GuiConvertProgress extends GuiScreen {
     @Override
     public void initGui() {
         buttonList.clear();
-        buttonList.add(new GuiButton(BTN_CANCEL, width / 2 - 75, height - 38, 150, 20,
-            I18n.format("cubicchunks.gui.progress.cancel")));
+        buttonList.add(
+            new GuiButton(
+                BTN_CANCEL,
+                width / 2 - 75,
+                height - 38,
+                150,
+                20,
+                I18n.format("cubicchunks.gui.progress.cancel")));
         buttonList.get(0).enabled = !cancelSignal.get();
         if (workerThread != null) return;
 
@@ -87,7 +91,10 @@ public class GuiConvertProgress extends GuiScreen {
                 if (cancelSignal.get()) progress.markCancelled();
                 else progress.markError(e.getMessage());
             } catch (IOException | RuntimeException | Error e) {
-                progress.markError(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+                progress.markError(
+                    e.getMessage() != null ? e.getMessage()
+                        : e.getClass()
+                            .getSimpleName());
                 // Let fatal errors escape, but do not leave the GUI waiting for a dead worker.
                 if (e instanceof Error) throw (Error) e;
             }
@@ -105,25 +112,27 @@ public class GuiConvertProgress extends GuiScreen {
             mc.displayGuiScreen(parent);
         } else if (progress.isDone()) {
             shownResult = true;
-            mc.displayGuiScreen(makeResultScreen(
-                I18n.format("cubicchunks.gui.progress.title"),
-                I18n.format("cubicchunks.gui.progress.done")));
+            mc.displayGuiScreen(
+                makeResultScreen(
+                    I18n.format("cubicchunks.gui.progress.title"),
+                    I18n.format("cubicchunks.gui.progress.done")));
         } else if (progress.isErrored()) {
             shownResult = true;
             String msg = progress.getErrorMessage();
-            mc.displayGuiScreen(makeResultScreen(
-                I18n.format("cubicchunks.gui.progress.title"),
-                I18n.format("cubicchunks.gui.progress.error", msg != null ? msg : "unknown")));
+            mc.displayGuiScreen(
+                makeResultScreen(
+                    I18n.format("cubicchunks.gui.progress.title"),
+                    I18n.format("cubicchunks.gui.progress.error", msg != null ? msg : "unknown")));
         }
     }
 
     private GuiScreen makeResultScreen(String title, String message) {
         GuiScreen returnTo = parent;
         return new GuiScreen() {
+
             @Override
             public void initGui() {
-                buttonList.add(new GuiButton(0, width / 2 - 75, height - 38, 150, 20,
-                    I18n.format("gui.done")));
+                buttonList.add(new GuiButton(0, width / 2 - 75, height - 38, 150, 20, I18n.format("gui.done")));
             }
 
             @Override
@@ -134,8 +143,8 @@ public class GuiConvertProgress extends GuiScreen {
             @Override
             public void drawScreen(int mouseX, int mouseY, float partialTicks) {
                 drawDefaultBackground();
-                drawCenteredString(fontRendererObj, title,   width / 2, height / 2 - 16, 0xFFFFFF);
-                drawCenteredString(fontRendererObj, message, width / 2, height / 2,      0xAAAAAA);
+                drawCenteredString(fontRendererObj, title, width / 2, height / 2 - 16, 0xFFFFFF);
+                drawCenteredString(fontRendererObj, message, width / 2, height / 2, 0xAAAAAA);
                 super.drawScreen(mouseX, mouseY, partialTicks);
             }
         };
@@ -176,7 +185,7 @@ public class GuiConvertProgress extends GuiScreen {
         }
 
         int completed = progress.getCompleted();
-        int total     = progress.getTotal();
+        int total = progress.getTotal();
         if (total > 0) {
             String countStr = I18n.format("cubicchunks.gui.progress.status", completed, total);
             drawCenteredString(fontRendererObj, countStr, width / 2, barY - 14, 0xFFFFFF);
