@@ -72,9 +72,9 @@ public final class CCToVanillaConverter implements IWorldConverter {
             "PrecipitationHeightMap3D"));
 
     /**
-     * CC column root keys that are explicitly handled. Columns saved by the game keep ChunkAPI data (biomes, the
-     * vanilla height map and light flag) in their root; other root tags are mod data, which vanilla also keeps in the
-     * chunk's root.
+     * CC column root keys that are not copied. Columns saved by the game (version 1) keep ChunkAPI data in their root:
+     * the biomes are converted, the vanilla height map is rebuilt from HeightMap3D and the light flag is left unset,
+     * so that vanilla relights the chunk without the cubes it cannot hold.
      */
     private static final Set<String> CC_COLUMN_ROOT_KEYS = new HashSet<>(
         Arrays.asList("Level", "Biomes", "Biomes16v2", "HeightMap", "LightPopulated"));
@@ -173,6 +173,18 @@ public final class CCToVanillaConverter implements IWorldConverter {
 
         NBTTagCompound root = new NBTTagCompound();
         copyUnknownTags(columnNbt, root, CC_COLUMN_ROOT_KEYS);
+        if (columnNbt.getCompoundTag("Level")
+            .getByte("v") == 1) {
+            // The other root tags of a game-saved column are ChunkAPI data, which vanilla reads from Level, or mods'
+            // ChunkDataEvent data, which vanilla keeps in the root. They cannot be told apart, so they go to both;
+            // vanilla writes both anew when it saves the chunk.
+            for (Object key : root.func_150296_c()) {
+                if (!level.hasKey((String) key)) level.setTag(
+                    (String) key,
+                    root.getTag((String) key)
+                        .copy());
+            }
+        }
         root.setTag("Level", level);
 
         try (DataOutputStream out = RegionFileCache.getChunkOutputStream(dimensionRoot, chunkX, chunkZ)) {
