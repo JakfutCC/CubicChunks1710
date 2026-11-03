@@ -89,7 +89,7 @@ class ConversionSafetyTest {
                 .resolve(world.relativize(dimension))
                 .resolve("region/r.0.0.mca");
             assertArrayEquals(originals.get(dimension), Files.readAllBytes(saved));
-            try (RegionCubeStorage storage = new RegionCubeStorage(dimension)) {
+            try (RegionCubeStorage storage = new RegionCubeStorage(dimension, true)) {
                 assertNotNull(storage.readColumn(new ChunkCoordIntPair(0, 0)));
             }
         }

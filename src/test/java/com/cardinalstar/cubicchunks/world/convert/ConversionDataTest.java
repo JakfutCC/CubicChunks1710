@@ -178,7 +178,7 @@ public class ConversionDataTest {
         region.close();
         new VanillaToCCConverter(SectionAdapterDiscovery.eid(), BiomeAdapterDiscovery.eid())
             .convert(temp.toFile(), true, new ConversionProgress(), new AtomicBoolean());
-        try (RegionCubeStorage storage = new RegionCubeStorage(temp)) {
+        try (RegionCubeStorage storage = new RegionCubeStorage(temp, true)) {
             NBTTagCompound column = storage.readColumn(new ChunkCoordIntPair(0, 0));
             assertEquals("retained", column.getString("mod-root-data"));
             assertEquals(
