@@ -20,6 +20,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.chunk.storage.RegionFileCache;
+import net.minecraftforge.common.util.Constants;
 
 import com.cardinalstar.cubicchunks.CubicChunks;
 import com.cardinalstar.cubicchunks.api.ICube;
@@ -44,6 +45,9 @@ import io.netty.buffer.Unpooled;
  * range are silently skipped since vanilla cannot represent them.
  *
  * <p>
+ * Reads per-cube anvil3d storage as well as bundle storage, including the empty cubes stored as states.
+ *
+ * <p>
  * Runs offline — no world or server instance is required.
  */
 @ParametersAreNonnullByDefault
@@ -64,7 +68,16 @@ public final class CCToVanillaConverter implements IWorldConverter {
             "Biomes16v2",
             "OpacityIndex",
             "HeightMap",
-            "HeightMap3D"));
+            "HeightMap3D",
+            "PrecipitationHeightMap3D"));
+
+    /**
+     * CC column root keys that are explicitly handled. Columns saved by the game keep ChunkAPI data (biomes, the
+     * vanilla height map and light flag) in their root; other root tags are mod data, which vanilla also keeps in the
+     * chunk's root.
+     */
+    private static final Set<String> CC_COLUMN_ROOT_KEYS = new HashSet<>(
+        Arrays.asList("Level", "Biomes", "Biomes16v2", "HeightMap", "LightPopulated"));
 
     private final SectionAdapter sectionWriteAdapter;
     private final BiomeAdapter biomeWriteAdapter;
@@ -80,7 +93,8 @@ public final class CCToVanillaConverter implements IWorldConverter {
         Path worldPath = dimensionRoot.toPath();
 
         LinkedHashSet<ChunkCoordIntPair> columns = new LinkedHashSet<>();
-        try (ICubicStorage storage = new RegionCubeStorage(worldPath)) {
+        // bundle storage also reads per-cube records
+        try (ICubicStorage storage = new RegionCubeStorage(worldPath, true)) {
             storage.forEachColumn(columns::add);
             columns.removeIf(pos -> {
                 try {
@@ -149,7 +163,7 @@ public final class CCToVanillaConverter implements IWorldConverter {
         }
 
         NBTTagCompound level = buildVanillaLevel(
-            columnLevel,
+            columnNbt,
             chunkX,
             chunkZ,
             sections,
@@ -158,6 +172,7 @@ public final class CCToVanillaConverter implements IWorldConverter {
             tileTicks);
 
         NBTTagCompound root = new NBTTagCompound();
+        copyUnknownTags(columnNbt, root, CC_COLUMN_ROOT_KEYS);
         root.setTag("Level", level);
 
         try (DataOutputStream out = RegionFileCache.getChunkOutputStream(dimensionRoot, chunkX, chunkZ)) {
@@ -184,8 +199,9 @@ public final class CCToVanillaConverter implements IWorldConverter {
         sections.appendTag(section);
     }
 
-    private NBTTagCompound buildVanillaLevel(NBTTagCompound columnLevel, int chunkX, int chunkZ, NBTTagList sections,
+    private NBTTagCompound buildVanillaLevel(NBTTagCompound columnNbt, int chunkX, int chunkZ, NBTTagList sections,
         NBTTagList entities, NBTTagList tileEntities, NBTTagList tileTicks) {
+        NBTTagCompound columnLevel = columnNbt.getCompoundTag("Level");
         NBTTagCompound level = new NBTTagCompound();
 
         level.setByte("V", (byte) 1);
@@ -196,11 +212,16 @@ public final class CCToVanillaConverter implements IWorldConverter {
         level.setBoolean("LightPopulated", columnLevel.getBoolean("LightPopulated"));
         level.setLong("InhabitedTime", columnLevel.getLong("InhabitedTime"));
 
-        int[] biomes = new int[256];
+        // Columns saved by the game keep their biomes with the other ChunkAPI data in the root, converted columns in
+        // Level. Without biomes the vanilla chunk gets none, so that the game generates them again.
+        NBTTagCompound biomeData = hasBiomes(columnNbt) ? columnNbt : columnLevel;
+        if (hasBiomes(biomeData)) {
+            int[] biomes = new int[256];
 
-        BiomeAdapterDiscovery.detect(columnLevel)
-            .readBiomeData(columnLevel, biomes);
-        biomeWriteAdapter.writeBiomeData(biomes, level);
+            BiomeAdapterDiscovery.detect(biomeData)
+                .readBiomeData(biomeData, biomes);
+            biomeWriteAdapter.writeBiomeData(biomes, level);
+        }
 
         level.setIntArray("HeightMap", buildHeightMap(columnLevel.getByteArray("HeightMap3D")));
         level.setTag("Sections", sections);
@@ -211,6 +232,11 @@ public final class CCToVanillaConverter implements IWorldConverter {
         copyUnknownTags(columnLevel, level, CC_COLUMN_LEVEL_KEYS);
 
         return level;
+    }
+
+    private static boolean hasBiomes(NBTTagCompound tag) {
+        return tag.hasKey("Biomes16v2", Constants.NBT.TAG_BYTE_ARRAY)
+            || tag.hasKey("Biomes", Constants.NBT.TAG_BYTE_ARRAY);
     }
 
     private final HashSet<String> unknownTags = new HashSet<>();
