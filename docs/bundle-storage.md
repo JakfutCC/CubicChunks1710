@@ -82,35 +82,12 @@ once, compressed, and nothing is serialized a second time. Reloading one of thes
 cubes decodes the whole record once and keeps its other members briefly, as for
 read-ahead. Empty cubes are not kept, since their states are cheap to read.
 
-## Existing worlds
+## Worlds from other versions
 
-Worlds using `cubicchunks:anvil3d` are switched to bundle storage when they are
-opened, unless `storageFormat` in
-`config/cubicchunks.cfg` is set to a format other than `cubicchunks:bundles`. Conversion is gradual: per-cube
-and per-column records keep being read, and a bundle or column group is written in
-the new format the first time one of its cubes or columns is saved, after which its
-old records are released. Region
-compaction reclaims the freed space on a later start.
+This version only reads its own format, `cubicchunks:bundles`. It refuses to open a
+world in any other format, such as `cubicchunks:anvil3d` or the
+`cubicchunks:anvil3d-bundles` of the 0.1 pre-releases.
 
-To convert a world completely at once instead, set `convertStorageOnWorldLoad=true`
-in `config/cubicchunks.cfg`. During the next server or world startup, before the
-world loads, every cube and column still stored in its own record is rewritten
-into bundle and column group records, and empty cubes become states in their
-columns; startup compaction then reclaims the freed space. It covers the same
-dimension folders as startup compaction and skips data that is already
-converted, so later starts are quick. A bundle or column group with a record that
-cannot be read is left as it is, and members too large to share a record keep
-their own files.
-
-Older CubicChunks versions cannot read bundle or column group records. After a world has been
-opened with this version, keep backups if you may need to go back. Do not edit the
-format marker in `data/cubicchunks.world_format.dat`.
-
-### Worlds with compact empty-cube tables
-
-Worlds created with v0.1.27-alpha-pre use `cubicchunks:anvil3d-compact-empty`,
-which kept empty cubes in compact tables in a `region3d-empty` directory. This
-version cannot read those tables and refuses to open such a world rather than
-generating its empty cubes again. Open it once with the storage converter build of
-CubicChunks, which writes every compact table's cubes as states and removes the
-tables; afterwards the world opens with this version.
+Older CubicChunks versions cannot read bundle or column group records, so keep
+backups if you may need to go back. Do not edit the format marker in
+`data/cubicchunks.world_format.dat`.

@@ -99,9 +99,7 @@ public class CubicChunksConfig {
 
     @Config.LangKey("cubicchunks.config.storage_format")
     @Config.Comment("The storage format for newly created worlds. If empty, new worlds use bundle storage"
-        + " (cubicchunks:bundles), and existing cubicchunks:anvil3d and cubicchunks:anvil3d-compact-empty worlds"
-        + " are converted to it when opened. Setting any other format creates new worlds in it and converts no"
-        + " existing world.")
+        + " (cubicchunks:bundles).")
     public static String storageFormat = "";
 
     @Config.LangKey("cubicchunks.config.spawn_generate_distance_horizontal")
@@ -135,12 +133,6 @@ public class CubicChunksConfig {
         + "crash.")
     public static int worldgenWatchdogTimeLimit = 10000;
 
-    @Config.LangKey("cubicchunks.config.use_shadow_paging_io")
-    @Config.Comment("Whether cubic chunks save format IO should use shadow paging. This may be slightly slower and use "
-        + "a bit more storage but should significantly improve reliability in case of improper shutdown.")
-    @Config.RequiresWorldRestart
-    public static boolean useShadowPagingIO = true;
-
     @Config.LangKey("cubicchunks.config.compact_regions_on_world_load")
     @Config.Comment("Enabled by default. Reclaim unused space in Anvil3D region files only during server/world startup. "
         + "Includes existing DIM<number> and DIM_SPACESTATION<number> folders without loading their chunks, "
@@ -149,15 +141,6 @@ public class CubicChunksConfig {
         + "Large fragmented saves may take longer to start. Gameplay dimension loads and reloads never compact.")
     @Config.RequiresWorldRestart
     public static boolean compactRegionsOnWorldLoad = true;
-
-    @Config.LangKey("cubicchunks.config.convert_storage_on_world_load")
-    @Config.Comment("Disabled by default. During server/world startup, convert bundle storage worlds completely: every "
-        + "cube and column still stored in its own record is rewritten into bundle and column group records right "
-        + "away, instead of when it is next saved. Covers the same folders as compactRegionsOnWorldLoad, which then "
-        + "reclaims the freed space. Already converted data is skipped, so later starts are quick. "
-        + "Large worlds take longer to start while this runs.")
-    @Config.RequiresWorldRestart
-    public static boolean convertStorageOnWorldLoad = false;
 
     @Config.LangKey("cubicchunks.config.disable_lighting")
     @Config.Comment("Disables all light propagation")

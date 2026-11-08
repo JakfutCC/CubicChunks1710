@@ -49,30 +49,15 @@ public final class StartupRegionCompaction {
         private final long started;
 
         Progress(String dimension, RegionCompactor.Phase phase, int completed, int total, long started) {
-            this(
-                dimension,
-                phase.name()
-                    .toLowerCase(java.util.Locale.ROOT),
-                completed,
-                total,
-                phase == RegionCompactor.Phase.DISCOVERING ? -1
-                    : (phase == RegionCompactor.Phase.COMPACTING ? 50 : 0)
-                        + (total == 0 ? 50 : (int) (50L * completed / total)),
-                started);
-        }
-
-        Progress(String dimension, String phase, int completed, int total, int percent, long started) {
             this.dimension = dimension;
-            this.phase = phase;
+            this.phase = phase.name()
+                .toLowerCase(java.util.Locale.ROOT);
             this.completed = completed;
             this.total = total;
-            this.percent = percent;
+            this.percent = phase == RegionCompactor.Phase.DISCOVERING ? -1
+                : (phase == RegionCompactor.Phase.COMPACTING ? 50 : 0)
+                    + (total == 0 ? 50 : (int) (50L * completed / total));
             this.started = started;
-        }
-
-        /** Whether this is the storage conversion rather than the compaction. */
-        public boolean converting() {
-            return CONVERTING.equals(phase);
         }
 
         public long elapsedSeconds() {
@@ -97,43 +82,17 @@ public final class StartupRegionCompaction {
         }
     }
 
-    private static final String CONVERTING = "converting";
-
-    private static void updateConversionProgress(String dimension, int completed, int total, long started) {
-        Progress snapshot = new Progress(
-            dimension,
-            CONVERTING,
-            completed,
-            total,
-            total == 0 ? 100 : (int) (100L * completed / total),
-            started);
-        progress = snapshot;
-        long now = System.nanoTime();
-        if (now - lastProgressLog >= 5_000_000_000L) {
-            lastProgressLog = now;
-            CubicChunks.LOGGER.info(
-                "Storage conversion {}: {}/{} regions ({} s)",
-                dimension,
-                completed,
-                total,
-                snapshot.elapsedSeconds());
-        }
-    }
-
     /**
-     * Startup maintenance before a dimension's storage opens: with {@code convertStorageOnWorldLoad}, a bundle storage
-     * world is converted completely ({@link StorageConversion}); with {@code compactRegionsOnWorldLoad}, region files
-     * are compacted afterwards. On the world's first open both cover every saved dimension folder.
+     * Startup maintenance before a dimension's storage opens: with {@code compactRegionsOnWorldLoad}, region files are
+     * compacted. On the world's first open this covers every saved dimension folder.
      */
-    static void beforeOpen(Path world, Path dimension, boolean bundled) throws IOException {
-        if (worlds == null) return;
-        boolean convert = bundled && CubicChunksConfig.convertStorageOnWorldLoad;
-        if (!convert && !CubicChunksConfig.compactRegionsOnWorldLoad) return;
+    static void beforeOpen(Path world, Path dimension) throws IOException {
+        if (worlds == null || !CubicChunksConfig.compactRegionsOnWorldLoad) return;
 
         Files.createDirectories(world);
         Path root = world.toRealPath();
         // Fail closed for storage being opened. The explicitly selected world root may itself be a symlink.
-        maintain(dimension.equals(world) ? root : dimension, root, convert);
+        maintain(dimension.equals(world) ? root : dimension, root);
         if (!worlds.contains(root)) {
             List<Path> savedDimensions = new ArrayList<>();
             savedDimensions.add(root);
@@ -150,12 +109,12 @@ public final class StartupRegionCompaction {
             Collections.sort(savedDimensions);
             for (Path saved : savedDimensions) {
                 try {
-                    maintain(saved, root, convert);
+                    maintain(saved, root);
                 } catch (IOException e) {
                     CubicChunks.LOGGER.warn(
                         "Skipping startup maintenance for saved dimension {}: {}. "
                             + "It will be checked again if opened during startup. "
-                            + "Set compactRegionsOnWorldLoad=false and convertStorageOnWorldLoad=false to disable it.",
+                            + "Set compactRegionsOnWorldLoad=false to disable it.",
                         saved,
                         e.toString());
                 }
@@ -164,7 +123,7 @@ public final class StartupRegionCompaction {
         }
     }
 
-    private static void maintain(Path dimension, Path root, boolean convert) throws IOException {
+    private static void maintain(Path dimension, Path root) throws IOException {
         if (Files.isSymbolicLink(dimension)) {
             CubicChunks.LOGGER.warn("Skipping startup region maintenance for symbolic link {}", dimension);
             return;
@@ -175,33 +134,6 @@ public final class StartupRegionCompaction {
         String label = path.equals(root) ? "DIM0"
             : path.getFileName()
                 .toString();
-        if (convert) {
-            try {
-                long start = System.nanoTime();
-                lastProgressLog = start;
-                CubicChunks.LOGGER.info("Converting stored cubes and columns of {} to bundle storage", path);
-                StorageConversion.Summary result = StorageConversion
-                    .convert(path, (completed, total) -> updateConversionProgress(label, completed, total, start));
-                CubicChunks.LOGGER.info(
-                    "Storage conversion for {}: {} regions checked, {} cubes and {} columns rewritten, {} left in their"
-                        + " own records because together they are too large for one, {} left as they were after errors,"
-                        + " in {} ms",
-                    path,
-                    result.regions,
-                    result.cubes,
-                    result.columns,
-                    result.tooLarge,
-                    result.failed,
-                    (System.nanoTime() - start) / 1_000_000);
-            } finally {
-                progress = null;
-            }
-        }
-        if (!CubicChunksConfig.compactRegionsOnWorldLoad) {
-            dimensions.add(path);
-            return;
-        }
-
         try (StorageMaintenanceLock ignored = StorageMaintenanceLock.openMaintenance(path)) {
             long start = System.nanoTime();
             lastProgressLog = start;

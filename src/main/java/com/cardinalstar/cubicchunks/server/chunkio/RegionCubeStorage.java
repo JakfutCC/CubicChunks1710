@@ -37,8 +37,6 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.ChunkCoordIntPair;
@@ -61,12 +59,10 @@ import cubicchunks.regionlib.lib.ExtRegion;
 import cubicchunks.regionlib.lib.factory.SimpleRegionFactory;
 import cubicchunks.regionlib.lib.provider.SharedCachedRegionProvider;
 import cubicchunks.regionlib.util.Utils;
-import it.unimi.dsi.fastutil.Pair;
 
 /**
- * Implementation of {@link ICubicStorage} for the Cubic Chunks' standard Anvil3d storage format, and for bundle
- * storage:
- * cubes in 2x2x2 bundle records ({@link CubeBundleCodec}), columns in 2x2 group records ({@link ColumnGroupCodec}) and
+ * Implementation of {@link ICubicStorage} for bundle storage: cubes in 2x2x2 bundle records ({@link CubeBundleCodec}),
+ * columns in 2x2 group records ({@link ColumnGroupCodec}) and
  * empty cubes as states in their column's record ({@link CubeStates}).
  * <p>
  * Writes are serialized; reads do not wait for them. A cube's full record always wins over its state: a cube that
@@ -75,20 +71,18 @@ import it.unimi.dsi.fastutil.Pair;
  */
 public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
 
-    /** Directory of the compact empty-cube tables of earlier versions, which this storage cannot read. */
-    static final String COMPACT_TABLES = "region3d-empty";
     /** Columns whose states {@link #stateCache} keeps. */
     private static final int STATE_CACHE_COLUMNS = 16384;
 
     /** Runs startup-only maintenance before opening storage; gameplay dimension loads never compact. */
-    public static ICubicStorage openForWorld(Path worldRoot, Path path, boolean bundled) throws IOException {
-        StartupRegionCompaction.beforeOpen(worldRoot, path, bundled);
-        return new RegionCubeStorage(path, bundled);
+    public static ICubicStorage openForWorld(Path worldRoot, Path path) throws IOException {
+        StartupRegionCompaction.beforeOpen(worldRoot, path);
+        return new RegionCubeStorage(path);
     }
 
-    private static SaveCubeColumns saveForPath(Path path, boolean bundled) throws IOException {
+    private static SaveCubeColumns saveForPath(Path path) throws IOException {
         // Bundle records are shared by several header entries, which only ShadowPagingRegion supports.
-        if (CubicChunksConfig.useShadowPagingIO || bundled) {
+        {
             Utils.createDirectories(path);
 
             Path part2d = path.resolve("region2d");
@@ -139,19 +133,12 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
                         (dir, key) -> Files.exists(part3d.resolve(key.getName() + ".ext")))));
 
             return new SaveCubeColumns(section2d, section3d);
-        } else {
-            return SaveCubeColumns.create(path);
         }
     }
 
-    private SaveCubeColumns save;
+    SaveCubeColumns save;
     private final Path cubeDirectory;
     private final StorageMaintenanceLock storageLock;
-    /**
-     * Cubes are written as 2x2x2 bundle records ({@link CubeBundleCodec}) and columns as 2x2 group records
-     * ({@link ColumnGroupCodec}); per-cube and per-column records are still read.
-     */
-    private final boolean bundled;
     /** Bundled writes since opening: cubes saved and records (bundle or per-cube) written for them, for the log. */
     private final java.util.concurrent.atomic.AtomicLong cubesWritten = new java.util.concurrent.atomic.AtomicLong(),
         recordsWritten = new java.util.concurrent.atomic.AtomicLong();
@@ -181,20 +168,9 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
     private final Map<ChunkCoordIntPair, Map<Integer, Integer>> pending = new HashMap<>();
 
     public RegionCubeStorage(Path path) throws IOException {
-        this(path, false);
-    }
-
-    RegionCubeStorage(Path path, boolean bundled) throws IOException {
-        this.bundled = bundled;
-        if (Files.exists(path.resolve(COMPACT_TABLES))) {
-            throw new IOException(
-                "This world stores empty cubes in compact tables (" + path.resolve(COMPACT_TABLES)
-                    + "), which this version of CubicChunks cannot read. Convert it first with a version that can,"
-                    + " see docs/bundle-storage.md.");
-        }
         this.storageLock = StorageMaintenanceLock.openStorage(path);
         try {
-            this.save = saveForPath(path, bundled);
+            this.save = saveForPath(path);
         } catch (IOException | RuntimeException | Error e) {
             try {
                 storageLock.close();
@@ -243,7 +219,6 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
         try {
             long before = writes.get();
             if (hasCubeRecord(pos)) return true;
-            if (!bundled) return false;
             if (states(pos.chunkPos()).get(pos.getY()) >= 0) return true;
             // a write may have given it a full record and then dropped its old state since the first check
             return writtenSince(before) && hasCubeRecord(pos);
@@ -308,7 +283,6 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
     /** The empty cube stored as a state in its column, or {@code null}. */
     @org.jetbrains.annotations.Nullable
     private NBTTagCompound emptyCube(CubePos pos) throws IOException {
-        if (!bundled) return null;
         int state = states(pos.chunkPos()).get(pos.getY());
         return state < 0 ? null : CubeStates.decode(pos, state);
     }
@@ -332,10 +306,10 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
         }
     }
 
-    /** As {@link #decodeCube}, for a per-column record or a column group record. */
+    /** As {@link #decodeCube}, for a column group record or a too large group's per-column record. */
     private NBTTagCompound decodeColumn(ChunkCoordIntPair pos, ByteBuffer record,
         @org.jetbrains.annotations.Nullable Map<ByteBuffer, ColumnGroupCodec.Stored> decoded) throws IOException {
-        if (!bundled || !ColumnGroupCodec.isGroup(record)) return CCNBTUtils.loadTag(record);
+        if (!ColumnGroupCodec.isGroup(record)) return CCNBTUtils.loadTag(record);
         int slot = ColumnGroupCodec.slot(pos);
         if ((ColumnGroupCodec.memberMask(record) & 1 << slot) == 0) {
             throw new IOException("Column " + pos + " points at a column group record without it");
@@ -357,7 +331,7 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
             Optional<ByteBuffer> data = this.save.load(new EntryLocation3D(pos.getX(), pos.getY(), pos.getZ()), true);
             if (data.isPresent()) return decodeCube(pos, data.get(), null);
             NBTTagCompound empty = emptyCube(pos);
-            if (empty != null || !bundled || !writtenSince(before)) return empty;
+            if (empty != null || !writtenSince(before)) return empty;
             // a write may have given it a full record and then dropped its old state since the first read
             data = this.save.load(new EntryLocation3D(pos.getX(), pos.getY(), pos.getZ()), true);
             return data.isPresent() ? decodeCube(pos, data.get(), null) : null;
@@ -367,12 +341,13 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
     }
 
     /**
-     * Decodes a cube from its record: a per-cube NBT record, or a bundle record shared with the other cubes of its
-     * bundle. {@code decoded} (if given) reuses bundles already decoded for this batch, keyed by record content.
+     * Decodes a cube from its record: a bundle record shared with the other cubes of its bundle, or the record of its
+     * own that a member of a too large bundle keeps. {@code decoded} (if given) reuses bundles already decoded for this
+     * batch, keyed by record content.
      */
     private NBTTagCompound decodeCube(CubePos pos, ByteBuffer record,
         @org.jetbrains.annotations.Nullable Map<ByteBuffer, CubeBundleCodec.Stored> decoded) throws IOException {
-        if (!bundled || !CubeBundleCodec.isBundle(record)) return CCNBTUtils.loadTag(record);
+        if (!CubeBundleCodec.isBundle(record)) return CCNBTUtils.loadTag(record);
         int slot = CubeBundleCodec.slot(pos);
         if ((CubeBundleCodec.memberMask(record) & 1 << slot) == 0) {
             throw new IOException("Cube " + pos + " points at a bundle record without it");
@@ -391,20 +366,18 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
         try {
             long before = writes.get();
             NBTBatch result = read(positions);
-            if (bundled) {
-                for (NBTTagCompound column : result.columns.values()) column.removeTag(CubeStates.TAG);
-                // cubes without a full record may be empty cubes stored in their column
-                List<CubePos> missing = new ArrayList<>();
-                for (CubePos pos : positions.cubes) {
-                    if (result.cubes.containsKey(pos)) continue;
-                    NBTTagCompound empty = emptyCube(pos);
-                    if (empty != null) result.cubes.put(pos, empty);
-                    else missing.add(pos);
-                }
-                // a write may have given one a full record and then dropped its old state since the first read
-                if (!missing.isEmpty() && writtenSince(before))
-                    result.cubes.putAll(read(new PosBatch(Collections.emptyList(), missing)).cubes);
+            for (NBTTagCompound column : result.columns.values()) column.removeTag(CubeStates.TAG);
+            // cubes without a full record may be empty cubes stored in their column
+            List<CubePos> missing = new ArrayList<>();
+            for (CubePos pos : positions.cubes) {
+                if (result.cubes.containsKey(pos)) continue;
+                NBTTagCompound empty = emptyCube(pos);
+                if (empty != null) result.cubes.put(pos, empty);
+                else missing.add(pos);
             }
+            // a write may have given one a full record and then dropped its old state since the first read
+            if (!missing.isEmpty() && writtenSince(before))
+                result.cubes.putAll(read(new PosBatch(Collections.emptyList(), missing)).cubes);
             return result;
         } finally {
             lock.unlock();
@@ -422,106 +395,66 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
         failOnReadErrors(columns.errored, cubes.errored);
 
         Map<ChunkCoordIntPair, NBTTagCompound> columnTags;
-        if (!bundled) {
-            columnTags = columns.read.entrySet()
+        // decode each column group record once for all its requested members
+        Map<ChunkCoordIntPair, List<Map.Entry<EntryLocation2D, ByteBuffer>>> byGroup = new HashMap<>();
+        for (Map.Entry<EntryLocation2D, ByteBuffer> e : columns.read.entrySet()) {
+            EntryLocation2D l = e.getKey();
+            byGroup
+                .computeIfAbsent(
+                    ColumnGroupCodec.origin(new ChunkCoordIntPair(l.getEntryX(), l.getEntryZ())),
+                    k -> new ArrayList<>(4))
+                .add(e);
+        }
+        columnTags = new java.util.concurrent.ConcurrentHashMap<>();
+        Map<ChunkCoordIntPair, NBTTagCompound> groupTags = columnTags;
+        try {
+            byGroup.values()
                 .parallelStream()
-                .map(e -> {
-                    try {
-                        return Pair.of(
-                            new ChunkCoordIntPair(
-                                e.getKey()
-                                    .getEntryX(),
-                                e.getKey()
-                                    .getEntryZ()),
-                            CCNBTUtils.loadTag(e.getValue()));
-                    } catch (IOException ex) {
-                        throw new UncheckedIOException(ex);
-                    }
-                })
-                .collect(Collectors.toMap(Pair::left, Pair::right));
-        } else {
-            // decode each column group record once for all its requested members
-            Map<ChunkCoordIntPair, List<Map.Entry<EntryLocation2D, ByteBuffer>>> byGroup = new HashMap<>();
-            for (Map.Entry<EntryLocation2D, ByteBuffer> e : columns.read.entrySet()) {
-                EntryLocation2D l = e.getKey();
-                byGroup
-                    .computeIfAbsent(
-                        ColumnGroupCodec.origin(new ChunkCoordIntPair(l.getEntryX(), l.getEntryZ())),
-                        k -> new ArrayList<>(4))
-                    .add(e);
-            }
-            columnTags = new java.util.concurrent.ConcurrentHashMap<>();
-            Map<ChunkCoordIntPair, NBTTagCompound> groupTags = columnTags;
-            try {
-                byGroup.values()
-                    .parallelStream()
-                    .forEach(members -> {
-                        Map<ByteBuffer, ColumnGroupCodec.Stored> decoded = new HashMap<>();
-                        for (Map.Entry<EntryLocation2D, ByteBuffer> e : members) {
-                            EntryLocation2D l = e.getKey();
-                            ChunkCoordIntPair pos = new ChunkCoordIntPair(l.getEntryX(), l.getEntryZ());
-                            try {
-                                groupTags.put(pos, decodeColumn(pos, e.getValue(), decoded));
-                            } catch (IOException ex) {
-                                throw new UncheckedIOException(ex);
-                            }
+                .forEach(members -> {
+                    Map<ByteBuffer, ColumnGroupCodec.Stored> decoded = new HashMap<>();
+                    for (Map.Entry<EntryLocation2D, ByteBuffer> e : members) {
+                        EntryLocation2D l = e.getKey();
+                        ChunkCoordIntPair pos = new ChunkCoordIntPair(l.getEntryX(), l.getEntryZ());
+                        try {
+                            groupTags.put(pos, decodeColumn(pos, e.getValue(), decoded));
+                        } catch (IOException ex) {
+                            throw new UncheckedIOException(ex);
                         }
-                    });
-            } catch (UncheckedIOException e) {
-                throw e.getCause();
-            }
+                    }
+                });
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
         }
 
         Map<CubePos, NBTTagCompound> cubeTags;
-        if (!bundled) {
-            cubeTags = cubes.read.entrySet()
+        // decode each bundle record once for all its requested members
+        Map<CubePos, List<Map.Entry<EntryLocation3D, ByteBuffer>>> byBundle = new HashMap<>();
+        for (Map.Entry<EntryLocation3D, ByteBuffer> e : cubes.read.entrySet()) {
+            EntryLocation3D l = e.getKey();
+            byBundle
+                .computeIfAbsent(
+                    CubeBundleCodec.origin(new CubePos(l.getEntryX(), l.getEntryY(), l.getEntryZ())),
+                    k -> new ArrayList<>(8))
+                .add(e);
+        }
+        cubeTags = new java.util.concurrent.ConcurrentHashMap<>();
+        try {
+            byBundle.values()
                 .parallelStream()
-                .map(e -> {
-                    try {
-                        return Pair.of(
-                            new CubePos(
-                                e.getKey()
-                                    .getEntryX(),
-                                e.getKey()
-                                    .getEntryY(),
-                                e.getKey()
-                                    .getEntryZ()),
-                            CCNBTUtils.loadTag(e.getValue()));
-                    } catch (IOException ex) {
-                        throw new UncheckedIOException(ex);
-                    }
-                })
-                .collect(Collectors.toMap(Pair::left, Pair::right));
-        } else {
-            // decode each bundle record once for all its requested members
-            Map<CubePos, List<Map.Entry<EntryLocation3D, ByteBuffer>>> byBundle = new HashMap<>();
-            for (Map.Entry<EntryLocation3D, ByteBuffer> e : cubes.read.entrySet()) {
-                EntryLocation3D l = e.getKey();
-                byBundle
-                    .computeIfAbsent(
-                        CubeBundleCodec.origin(new CubePos(l.getEntryX(), l.getEntryY(), l.getEntryZ())),
-                        k -> new ArrayList<>(8))
-                    .add(e);
-            }
-            cubeTags = new java.util.concurrent.ConcurrentHashMap<>();
-            try {
-                byBundle.values()
-                    .parallelStream()
-                    .forEach(members -> {
-                        Map<ByteBuffer, CubeBundleCodec.Stored> decoded = new HashMap<>();
-                        for (Map.Entry<EntryLocation3D, ByteBuffer> e : members) {
-                            EntryLocation3D l = e.getKey();
-                            CubePos pos = new CubePos(l.getEntryX(), l.getEntryY(), l.getEntryZ());
-                            try {
-                                cubeTags.put(pos, decodeCube(pos, e.getValue(), decoded));
-                            } catch (IOException ex) {
-                                throw new UncheckedIOException(ex);
-                            }
+                .forEach(members -> {
+                    Map<ByteBuffer, CubeBundleCodec.Stored> decoded = new HashMap<>();
+                    for (Map.Entry<EntryLocation3D, ByteBuffer> e : members) {
+                        EntryLocation3D l = e.getKey();
+                        CubePos pos = new CubePos(l.getEntryX(), l.getEntryY(), l.getEntryZ());
+                        try {
+                            cubeTags.put(pos, decodeCube(pos, e.getValue(), decoded));
+                        } catch (IOException ex) {
+                            throw new UncheckedIOException(ex);
                         }
-                    });
-            } catch (UncheckedIOException e) {
-                throw e.getCause();
-            }
+                    }
+                });
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
         }
 
         return new NBTBatch(columnTags, cubeTags);
@@ -554,11 +487,6 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
     }
 
     @Override
-    public boolean writesBundles() {
-        return bundled;
-    }
-
-    @Override
     public void writeBatch(NBTBatch batch, @org.jetbrains.annotations.Nullable Map<CubePos, ByteBuffer> written)
         throws IOException {
         Lock lock = open();
@@ -566,37 +494,13 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
             synchronized (writeLock) {
                 writes.incrementAndGet();
                 try {
-                    if (bundled) writeBundled(batch, written);
-                    else writeRecords(batch, written);
+                    writeBundled(batch, written);
                 } finally {
                     writes.incrementAndGet();
                 }
             }
         } finally {
             lock.unlock();
-        }
-    }
-
-    /** Writes each column and cube as its own record. */
-    private void writeRecords(NBTBatch batch, @org.jetbrains.annotations.Nullable Map<CubePos, ByteBuffer> written)
-        throws IOException {
-        // compress NBT data
-        var compressedColumns = this
-            .compressNBTForBatchWrite(batch.columns, pos -> new EntryLocation2D(pos.chunkXPos, pos.chunkZPos));
-        // write compressed data to disk
-        if (!compressedColumns.isEmpty()) {
-            this.save.save2d(compressedColumns);
-        }
-        var compressedCubes = this
-            .compressNBTForBatchWrite(batch.cubes, pos -> new EntryLocation3D(pos.getX(), pos.getY(), pos.getZ()));
-        if (!compressedCubes.isEmpty()) {
-            // views taken before the region write consumes the buffers
-            Map<CubePos, ByteBuffer> records = new HashMap<>();
-            if (written != null) compressedCubes.forEach(
-                (l, record) -> records
-                    .put(new CubePos(l.getEntryX(), l.getEntryY(), l.getEntryZ()), record.asReadOnlyBuffer()));
-            this.save.save3d(compressedCubes);
-            if (written != null) written.putAll(records);
         }
     }
 
@@ -1206,29 +1110,6 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
         return ys;
     }
 
-    private <KI, KO> Map<KO, ByteBuffer> compressNBTForBatchWrite(Map<KI, NBTTagCompound> nbt,
-        Function<KI, KO> keyMappingFunction) throws IOException {
-        if (nbt.isEmpty()) { // avoid somewhat expensive stream creation if there are no entries
-            return Collections.emptyMap();
-        }
-
-        try {
-            return nbt.entrySet()
-                .parallelStream()
-                .collect(Collectors.toMap(entry -> keyMappingFunction.apply(entry.getKey()), entry -> {
-                    try {
-                        return CCNBTUtils.saveTag(entry.getValue(), CubicChunksConfig.chunkCompression);
-                    } catch (IOException e) {
-                        // wrap exception so that we can throw it from inside the lambda
-                        throw new UncheckedIOException(e);
-                    }
-                }));
-        } catch (UncheckedIOException e) {
-            // rethrow original exception
-            throw e.getCause();
-        }
-    }
-
     // RegionLib's fallback (.ext) region provider lists every slot of a region file that has no .ext file, so only
     // keys with an entry are reported
 
@@ -1265,7 +1146,6 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
                         if (section.hasEntry(pos))
                             callback.accept(new CubePos(pos.getEntryX(), pos.getEntryY(), pos.getEntryZ()));
                     });
-                if (!bundled) return;
                 // and the empty cubes stored as states, unless a full record wins over a stale state
                 List<ChunkCoordIntPair> columns = new ArrayList<>();
                 listColumns(columns::add);
@@ -1312,7 +1192,7 @@ public class RegionCubeStorage implements ICubicStorage, RecordingCubeStorage {
 
     private void closeRegions() throws IOException {
         if (this.save == null) return;
-        if (bundled && cubesWritten.get() > 0) {
+        if (cubesWritten.get() > 0) {
             CubicChunks.LOGGER.info(
                 "Cube storage {}: {} cube saves written as {} records",
                 cubeDirectory,

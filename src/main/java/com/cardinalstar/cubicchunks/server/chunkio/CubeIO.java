@@ -106,7 +106,7 @@ public class CubeIO implements ICubeIO {
         this.preloadFailures = preloadFailures;
         this.recording = storage instanceof RecordingCubeStorage r ? r : null;
         this.loaded = loaded;
-        this.writeWaitMillis = recording != null && recording.writesBundles() && loaded != null
+        this.writeWaitMillis = recording != null && loaded != null
             ? Math.max(0, CubicChunksConfig.optimizations.bundleWriteWaitSeconds) * 1000L
             : 0;
         long cubeBudget = (long) Math.max(0, CubicChunksConfig.optimizations.saveCacheMegabytes) << 20;

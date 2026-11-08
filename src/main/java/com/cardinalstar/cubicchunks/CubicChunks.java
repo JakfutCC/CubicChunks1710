@@ -121,7 +121,7 @@ public class CubicChunks {
     public void preInit(FMLPreInitializationEvent e) {
         LOGGER = e.getModLog();
 
-        registerAnvil3dStorageFormatProvider();
+        registerStorageFormatProviders();
         VanillaCubicWorldType.init();
 
         LOGGER.debug("Registered world types");
@@ -210,9 +210,7 @@ public class CubicChunks {
         StartupRegionCompaction.finish();
     }
 
-    public static void registerAnvil3dStorageFormatProvider() {
-        StorageFormatFactory.REGISTRY
-            .register(StorageFormatFactory.ANVIL3D, new DefaultStorageFormatFactory(StorageFormatFactory.ANVIL3D));
+    public static void registerStorageFormatProviders() {
         StorageFormatFactory.REGISTRY
             .register(StorageFormatFactory.BUNDLES, new DefaultStorageFormatFactory(StorageFormatFactory.BUNDLES));
     }
@@ -293,12 +291,9 @@ public class CubicChunks {
 
     private static class DefaultStorageFormatFactory extends StorageFormatFactory {
 
-        private final boolean bundled;
-
         public DefaultStorageFormatFactory(UniqueIdentifier format) {
-            this.bundled = format.equals(StorageFormatFactory.BUNDLES);
             setRegistryName(format);
-            setUnlocalizedName(bundled ? "cubicchunks.gui.storagefmt.bundles" : "cubicchunks.gui.storagefmt.anvil3d");
+            setUnlocalizedName("cubicchunks.gui.storagefmt.bundles");
         }
 
         @Override
@@ -320,8 +315,7 @@ public class CubicChunks {
                 world.getSaveHandler()
                     .getWorldDirectory()
                     .toPath(),
-                path,
-                bundled);
+                path);
         }
     }
 }
