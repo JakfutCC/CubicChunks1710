@@ -101,8 +101,7 @@ class CubeBundleCodecTest {
         CubeBundleCodec.Stored after = CubeBundleCodec.read(rewritten);
         for (int s = 0; s < 8; s++) {
             if (s == 3 || s == 5) continue;
-            assertArrayEquals(stored.client[s], after.client[s], "member " + s + " keeps its client bytes");
-            assertArrayEquals(stored.server[s], after.server[s], "member " + s + " keeps its server bytes");
+            assertArrayEquals(stored.members[s], after.members[s], "member " + s + " keeps its bytes");
         }
         NBTTagCompound[] expected = members.clone();
         expected[3] = replace[3];
@@ -121,7 +120,7 @@ class CubeBundleCodecTest {
             java.util.Arrays.copyOf(bytes, bytes.length - 3) };
         damaged[0][3] = 9; // unknown version
         damaged[1][5] = 7; // member mask that differs from the payload
-        damaged[2][9]++; // client part length
+        damaged[2][9]++; // payload length
         for (byte[] record : damaged)
             assertThrows(IOException.class, () -> CubeBundleCodec.read(ByteBuffer.wrap(record)));
         for (CCNBTUtils.TagCompression codec : CCNBTUtils.TagCompression.values()) {

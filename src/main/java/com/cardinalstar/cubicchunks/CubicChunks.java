@@ -298,8 +298,7 @@ public class CubicChunks {
         public DefaultStorageFormatFactory(UniqueIdentifier format) {
             this.bundled = format.equals(StorageFormatFactory.BUNDLES);
             setRegistryName(format);
-            setUnlocalizedName(
-                bundled ? "cubicchunks.gui.storagefmt.anvil3d_bundles" : "cubicchunks.gui.storagefmt.anvil3d");
+            setUnlocalizedName(bundled ? "cubicchunks.gui.storagefmt.bundles" : "cubicchunks.gui.storagefmt.anvil3d");
         }
 
         @Override

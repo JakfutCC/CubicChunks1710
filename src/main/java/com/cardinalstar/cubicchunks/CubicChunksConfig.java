@@ -99,7 +99,7 @@ public class CubicChunksConfig {
 
     @Config.LangKey("cubicchunks.config.storage_format")
     @Config.Comment("The storage format for newly created worlds. If empty, new worlds use bundle storage"
-        + " (cubicchunks:anvil3d-bundles), and existing cubicchunks:anvil3d and cubicchunks:anvil3d-compact-empty worlds"
+        + " (cubicchunks:bundles), and existing cubicchunks:anvil3d and cubicchunks:anvil3d-compact-empty worlds"
         + " are converted to it when opened. Setting any other format creates new worlds in it and converts no"
         + " existing world.")
     public static String storageFormat = "";

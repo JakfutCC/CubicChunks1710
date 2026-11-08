@@ -29,23 +29,17 @@ import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
  * One region record for the cubes of an aligned 2x2x2 block of cubes (a bundle). The header entries of all member
  * cubes point at the same record ({@link com.cardinalstar.cubicchunks.server.chunkio.region.ShadowPagingRegion}).
  * <p>
- * A record holds two separately compressed parts, so either can be read without the other. The client part holds
- * what a client is sent of each member, its {@code Level.Sections} and {@code Level.Biomes}; the server part holds
- * the rest of each member's NBT (position, status, entities, tile entities, scheduled ticks, lighting info).
- * <p>
- * Layout: {@code 'C' 'C' 'B' version}, codec byte, member mask, then big-endian ints for the raw length of the client
- * part, the compressed length of the client part and the raw length of the server part, then the compressed client
- * part and the compressed server part. The client part holds the mask of members that have one, the mask of members
- * using the palette, a block state palette shared by all members, then each member's client NBT. A member whose single
- * section has plain block arrays stores palette indices ({@value #INDICES}) and a mask of the arrays it had
- * ({@value #ARRAYS_PRESENT}) instead of the arrays; byte indices up to 256 states, else 16-bit. Other sections are
- * kept unchanged. The server part holds the member mask, then each member's remaining NBT. Decoding restores the
- * exact original NBT.
+ * Layout: {@code 'C' 'C' 'B' version}, codec byte, member mask, the raw payload length as a big-endian int, then the
+ * compressed payload as one frame. The payload holds the member mask, the mask of members using the palette, a block
+ * state palette shared by all members, then each member's NBT. A member whose single section has plain block arrays
+ * stores palette indices ({@value #INDICES}) and a mask of the arrays it had ({@value #ARRAYS_PRESENT}) instead of the
+ * arrays; byte indices up to 256 states, else 16-bit. Other sections are kept unchanged. Decoding restores the exact
+ * original NBT.
  */
 final class CubeBundleCodec {
 
-    static final int VERSION = 2;
-    static final int HEADER_BYTES = 18;
+    static final int VERSION = 3;
+    static final int HEADER_BYTES = 10;
     static final int MAX_RAW_BYTES = 64 * 1024 * 1024;
     /** Largest payload {@link #encode} writes; {@link #MAX_RAW_BYTES} except in tests. */
     static int maxEncodedBytes = MAX_RAW_BYTES;
@@ -63,8 +57,6 @@ final class CubeBundleCodec {
     static final int[] LENGTHS = { 4096, 2048, 2048, 2048, 2048, 4096, 4096 };
     private static final int B3 = 6;
     static final String ARRAYS_PRESENT = "ccb:arrays", INDICES = "ccb:indices";
-    /** The keys of a cube's {@code Level} that make up its client part. */
-    static final String[] CLIENT_KEYS = { "Sections", "Biomes" };
 
     private static final int CODEC_NONE = 0, CODEC_GZIP = 1, CODEC_LZ4 = 2, CODEC_ZSTD = 3;
 
@@ -94,27 +86,18 @@ final class CubeBundleCodec {
         return record.get(record.position() + 5) & 255;
     }
 
-    /**
-     * A decompressed bundle: its palette and the encoded client and server NBT of each member, which are only parsed
-     * on demand. Every member has a server part; a member without {@link #CLIENT_KEYS} has no client part.
-     */
+    /** A decompressed bundle: its palette and the encoded NBT of each member, which is only parsed on demand. */
     static final class Stored {
 
         int[] states = new int[0];
         int count;
-        final byte[][] client = new byte[8][], server = new byte[8][];
+        final byte[][] members = new byte[8][];
         /** Members whose section stores palette indices instead of block arrays. */
         int palettized;
 
         int mask() {
             int mask = 0;
-            for (int s = 0; s < 8; s++) if (server[s] != null) mask |= 1 << s;
-            return mask;
-        }
-
-        int clientMask() {
-            int mask = 0;
-            for (int s = 0; s < 8; s++) if (client[s] != null) mask |= 1 << s;
+            for (int s = 0; s < 8; s++) if (members[s] != null) mask |= 1 << s;
             return mask;
         }
 
@@ -125,16 +108,9 @@ final class CubeBundleCodec {
         /** The member's original NBT, or {@code null} if absent. The caller owns the result. */
         @Nullable
         NBTTagCompound member(int slot) throws IOException {
-            if (server[slot] == null) return null;
-            NBTTagCompound root = parse(server[slot]);
-            if (client[slot] != null) {
-                NBTTagCompound part = parse(client[slot]);
-                if ((palettized & 1 << slot) != 0) restore(section(part), this);
-                if (!root.hasKey("Level", 10)) throw new IOException("Cube bundle member without Level");
-                NBTTagCompound level = root.getCompoundTag("Level"), clientLevel = part.getCompoundTag("Level");
-                for (Object key : clientLevel.func_150296_c())
-                    level.setTag((String) key, clientLevel.getTag((String) key));
-            }
+            if (members[slot] == null) return null;
+            NBTTagCompound root = parse(members[slot]);
+            if ((palettized & 1 << slot) != 0) restore(section(root), this);
             return root;
         }
     }
@@ -143,21 +119,18 @@ final class CubeBundleCodec {
     static ByteBuffer encode(NBTTagCompound[] members) throws IOException {
         Palette palette = new Palette();
         Stored stored = new Stored();
-        NBTTagCompound[] client = new NBTTagCompound[8];
         int[][] keys = new int[8][];
         int[] arrays = new int[8];
         for (int s = 0; s < 8; s++) {
             if (members[s] == null) continue;
-            client[s] = split(members[s], stored, s);
-            if (client[s] == null) continue;
-            arrays[s] = palettizable(client[s]);
-            if (arrays[s] >= 0) keys[s] = palette.add(keys(section(client[s]), arrays[s]));
+            arrays[s] = palettizable(members[s]);
+            if (arrays[s] >= 0) keys[s] = palette.add(keys(section(members[s]), arrays[s]));
         }
         stored.states = palette.states;
         stored.count = palette.count;
         for (int s = 0; s < 8; s++) {
-            if (client[s] == null) continue;
-            stored.client[s] = write(client[s], keys[s], arrays[s], stored.bits());
+            if (members[s] == null) continue;
+            stored.members[s] = write(members[s], keys[s], arrays[s], stored.bits());
             if (keys[s] != null) stored.palettized |= 1 << s;
         }
         return pack(stored);
@@ -177,15 +150,12 @@ final class CubeBundleCodec {
         Palette palette = new Palette(stored.states, stored.count);
         int bits = stored.bits();
         Stored out = new Stored();
-        NBTTagCompound[] client = new NBTTagCompound[8];
         int[][] keys = new int[8][];
         int[] arrays = new int[8];
         for (int s = 0; s < 8; s++) {
             if (replace[s] == null) continue;
-            client[s] = split(replace[s], out, s);
-            if (client[s] == null) continue;
-            arrays[s] = palettizable(client[s]);
-            if (arrays[s] >= 0) keys[s] = palette.add(keys(section(client[s]), arrays[s]));
+            arrays[s] = palettizable(replace[s]);
+            if (arrays[s] >= 0) keys[s] = palette.add(keys(section(replace[s]), arrays[s]));
         }
         boolean widthChanges = bits == 8 && palette.count > 256;
         if (widthChanges || palette.count > 4096) {
@@ -202,12 +172,10 @@ final class CubeBundleCodec {
         for (int s = 0; s < 8; s++) {
             if ((mask & 1 << s) == 0) continue;
             if (replace[s] != null) {
-                if (client[s] == null) continue;
-                out.client[s] = write(client[s], keys[s], arrays[s], bits);
+                out.members[s] = write(replace[s], keys[s], arrays[s], bits);
                 if (keys[s] != null) out.palettized |= 1 << s;
             } else {
-                out.client[s] = stored.client[s];
-                out.server[s] = stored.server[s];
+                out.members[s] = stored.members[s];
                 out.palettized |= stored.palettized & 1 << s;
             }
         }
@@ -220,25 +188,15 @@ final class CubeBundleCodec {
         int p = record.position();
         if (record.get(p + 3) != VERSION) throw new IOException("Unsupported cube bundle version " + record.get(p + 3));
         int codec = record.get(p + 4) & 255, headerMask = record.get(p + 5) & 255;
-        int clientLength = record.getInt(p + 6), clientFrame = record.getInt(p + 10),
-            serverLength = record.getInt(p + 14);
-        if (clientLength < 1 || clientLength > MAX_RAW_BYTES || serverLength < 1 || serverLength > MAX_RAW_BYTES)
-            throw new IOException("Invalid cube bundle length " + clientLength + "/" + serverLength);
-        if (clientFrame < 1 || clientFrame >= record.remaining() - HEADER_BYTES)
-            throw new IOException("Invalid cube bundle client part length " + clientFrame);
-        ByteBuffer clientPart = record.duplicate(), serverPart = record.duplicate();
-        clientPart.position(p + HEADER_BYTES)
-            .limit(p + HEADER_BYTES + clientFrame);
-        serverPart.position(p + HEADER_BYTES + clientFrame);
+        int rawLength = record.getInt(p + 6);
+        if (rawLength < 1 || rawLength > MAX_RAW_BYTES)
+            throw new IOException("Invalid cube bundle length " + rawLength);
+        ByteBuffer payload = record.duplicate();
+        payload.position(p + HEADER_BYTES);
         Stored stored = new Stored();
-        try (DataInputStream in = stream(decompress(codec, serverPart, serverLength))) {
+        try (DataInputStream in = stream(decompress(codec, payload, rawLength))) {
             int mask = in.readUnsignedByte();
             if (mask != headerMask || mask == 0) throw new IOException("Cube bundle member mask mismatch");
-            readMembers(in, mask, stored.server);
-        }
-        try (DataInputStream in = stream(decompress(codec, clientPart, clientLength))) {
-            int mask = in.readUnsignedByte();
-            if ((mask & ~headerMask) != 0) throw new IOException("Cube bundle client mask mismatch");
             stored.palettized = in.readUnsignedByte();
             if ((stored.palettized & ~mask) != 0) throw new IOException("Cube bundle palette mask mismatch");
             int count = in.readInt();
@@ -246,7 +204,7 @@ final class CubeBundleCodec {
             stored.count = count;
             stored.states = new int[count];
             for (int i = 0; i < count; i++) stored.states[i] = in.readInt();
-            readMembers(in, mask, stored.client);
+            readMembers(in, mask, stored.members);
         }
         return stored;
     }
@@ -255,7 +213,7 @@ final class CubeBundleCodec {
         return new DataInputStream(new ByteArrayInputStream(raw));
     }
 
-    /** Reads the length-prefixed members in {@code mask}, which must end the part. */
+    /** Reads the length-prefixed members in {@code mask}, which must end the payload. */
     private static void readMembers(DataInputStream in, int mask, byte[][] members) throws IOException {
         for (int s = 0; s < 8; s++) {
             if ((mask & 1 << s) == 0) continue;
@@ -282,31 +240,6 @@ final class CubeBundleCodec {
     }
 
     // --- encoding
-
-    /**
-     * Stores the member's server part in {@code stored} and returns its client part, or {@code null} if its
-     * {@code Level} has none of {@link #CLIENT_KEYS}. Both share tags with {@code root}, which is not modified.
-     */
-    @Nullable
-    private static NBTTagCompound split(NBTTagCompound root, Stored stored, int slot) throws IOException {
-        NBTTagCompound level = root.hasKey("Level", 10) ? root.getCompoundTag("Level") : null, client = null,
-            server = root;
-        for (String key : CLIENT_KEYS) {
-            if (level == null || !level.hasKey(key)) continue;
-            if (client == null) {
-                client = new NBTTagCompound();
-                client.setTag("Level", new NBTTagCompound());
-                server = shallowCopy(root);
-                server.setTag("Level", shallowCopy(level));
-            }
-            client.getCompoundTag("Level")
-                .setTag(key, level.getTag(key));
-            server.getCompoundTag("Level")
-                .removeTag(key);
-        }
-        stored.server[slot] = serialize(server);
-        return client;
-    }
 
     private static NBTTagCompound section(NBTTagCompound root) {
         return root.getCompoundTag("Level")
@@ -393,7 +326,7 @@ final class CubeBundleCodec {
         return copy;
     }
 
-    /** Serializes a client part, with palette indices instead of block arrays when {@code keys} is given. */
+    /** Serializes a member, with palette indices instead of block arrays when {@code keys} is given. */
     private static byte[] write(NBTTagCompound root, @Nullable int[] keys, int arrays, int bits) throws IOException {
         NBTTagCompound out = root;
         if (keys != null) {
@@ -473,36 +406,28 @@ final class CubeBundleCodec {
     // --- record framing
 
     private static ByteBuffer pack(Stored stored) throws IOException {
-        int mask = stored.mask(), clientMask = stored.clientMask();
-        ByteArrayOutputStream clientRaw = new ByteArrayOutputStream(16384), serverRaw = new ByteArrayOutputStream(4096);
-        try (DataOutputStream out = new DataOutputStream(clientRaw)) {
-            out.writeByte(clientMask);
-            out.writeByte(stored.palettized & clientMask);
+        int mask = stored.mask();
+        ByteArrayOutputStream raw = new ByteArrayOutputStream(16384);
+        try (DataOutputStream out = new DataOutputStream(raw)) {
+            out.writeByte(mask);
+            out.writeByte(stored.palettized);
             out.writeInt(stored.count);
             for (int i = 0; i < stored.count; i++) out.writeInt(stored.states[i]);
-            writeMembers(out, stored.client);
+            writeMembers(out, stored.members);
         }
-        try (DataOutputStream out = new DataOutputStream(serverRaw)) {
-            out.writeByte(mask);
-            writeMembers(out, stored.server);
-        }
-        byte[] clientPart = clientRaw.toByteArray(), serverPart = serverRaw.toByteArray();
-        long bytes = (long) clientPart.length + serverPart.length;
-        if (bytes > maxEncodedBytes) throw new OversizedBundleException(bytes);
+        byte[] payload = raw.toByteArray();
+        if (payload.length > maxEncodedBytes) throw new OversizedBundleException(payload.length);
         int codec = codec(CubicChunksConfig.chunkCompression);
-        byte[] client = compress(codec, clientPart), server = compress(codec, serverPart);
-        ByteBuffer record = ByteBuffer.allocate(HEADER_BYTES + client.length + server.length);
+        byte[] compressed = compress(codec, payload);
+        ByteBuffer record = ByteBuffer.allocate(HEADER_BYTES + compressed.length);
         record.put((byte) 'C')
             .put((byte) 'C')
             .put((byte) 'B')
             .put((byte) VERSION)
             .put((byte) codec)
             .put((byte) mask)
-            .putInt(clientPart.length)
-            .putInt(client.length)
-            .putInt(serverPart.length)
-            .put(client)
-            .put(server);
+            .putInt(payload.length)
+            .put(compressed);
         record.flip();
         return record;
     }

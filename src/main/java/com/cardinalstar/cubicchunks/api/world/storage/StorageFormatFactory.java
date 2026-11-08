@@ -44,7 +44,7 @@ public abstract class StorageFormatFactory extends AbstractRegistryEntry<Storage
      * 2x2x2 bundle records for cubes, 2x2 group records for columns and empty cubes as states in their columns.
      * Existing anvil3d worlds are converted to it.
      */
-    public static final UniqueIdentifier BUNDLES = new UniqueIdentifier("cubicchunks:anvil3d-bundles");
+    public static final UniqueIdentifier BUNDLES = new UniqueIdentifier("cubicchunks:bundles");
     public static final UniqueIdentifier DEFAULT = BUNDLES;
     public static final Registry<StorageFormatFactory> REGISTRY = new Registry<>();
 
