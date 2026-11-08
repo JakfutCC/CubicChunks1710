@@ -45,7 +45,7 @@ import io.netty.buffer.Unpooled;
  * range are silently skipped since vanilla cannot represent them.
  *
  * <p>
- * Reads per-cube anvil3d storage as well as bundle storage, including the empty cubes stored as states.
+ * Reads bundle storage, including the empty cubes stored as states.
  *
  * <p>
  * Runs offline — no world or server instance is required.
@@ -94,7 +94,7 @@ public final class CCToVanillaConverter implements IWorldConverter {
 
         LinkedHashSet<ChunkCoordIntPair> columns = new LinkedHashSet<>();
         // bundle storage also reads per-cube records
-        try (ICubicStorage storage = new RegionCubeStorage(worldPath, true)) {
+        try (ICubicStorage storage = new RegionCubeStorage(worldPath)) {
             storage.forEachColumn(columns::add);
             columns.removeIf(pos -> {
                 try {

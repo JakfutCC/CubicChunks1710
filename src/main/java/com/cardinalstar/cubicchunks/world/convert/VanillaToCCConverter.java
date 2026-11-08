@@ -29,7 +29,6 @@ import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.chunk.storage.RegionFile;
 
 import com.cardinalstar.cubicchunks.CubicChunks;
-import com.cardinalstar.cubicchunks.CubicChunksConfig;
 import com.cardinalstar.cubicchunks.api.ICube;
 import com.cardinalstar.cubicchunks.api.world.storage.ICubicStorage;
 import com.cardinalstar.cubicchunks.api.world.storage.ICubicStorage.NBTBatch;
@@ -48,7 +47,7 @@ import it.unimi.dsi.fastutil.Pair;
 /**
  * Converts a vanilla Anvil world ({@code region/*.mca}) into CubicChunks format
  * ({@code region2d/}, {@code region3d/}, {@code data/cubicchunks.world_format.dat}), in the storage format a new world
- * gets ({@link #outputFormat()}), so that the converted world needs no storage conversion when it is first opened.
+ * gets, so that the converted world needs no storage conversion when it is first opened.
  *
  * <p>
  * Runs offline — no world or server instance is required.
@@ -105,25 +104,10 @@ public final class VanillaToCCConverter implements IWorldConverter {
             cancelSignal);
     }
 
-    /**
-     * The storage format a new world gets: {@code storageFormat} in cubicchunks.cfg, else
-     * {@link StorageFormatFactory#DEFAULT}. Bundle storage stores the empty cubes of converted chunks as states in
-     * their columns.
-     */
-    static String outputFormat() throws IOException {
-        String configured = CubicChunksConfig.storageFormat.trim();
-        String format = configured.isEmpty() ? StorageFormatFactory.DEFAULT.toString() : configured;
-        if (format.equals(StorageFormatFactory.BUNDLES.toString())) return format;
-        throw new IOException(
-            "Cannot convert to storage format \"" + format
-                + "\" (storageFormat in cubicchunks.cfg); the converter writes "
-                + StorageFormatFactory.BUNDLES);
-    }
-
     private void convertDimensions(Path root, List<Path> dimensions, boolean writeMarker, ConversionProgress progress,
         AtomicBoolean cancelSignal) throws IOException {
         IWorldConverter.checkCancelled(cancelSignal);
-        String format = outputFormat();
+        String format = StorageFormatFactory.DEFAULT.toString();
         Path backup = root.resolve(".cubicchunks-anvil-backup");
         Path marker = root.resolve("data/cubicchunks.world_format.dat");
         if (Files.exists(backup) || Files.exists(marker)) {
@@ -152,8 +136,7 @@ public final class VanillaToCCConverter implements IWorldConverter {
                         : dimension.getFileName()
                             .toString());
                 Path output = staging.resolve(root.relativize(dimension));
-                if (convertDimension(dimension.toFile(), output, progress, cancelSignal))
-                    converted.add(dimension);
+                if (convertDimension(dimension.toFile(), output, progress, cancelSignal)) converted.add(dimension);
             }
             if (!converted.isEmpty()) {
                 if (writeMarker) writeFormatMarker(staging.toFile(), format);

@@ -31,25 +31,20 @@ public class ConversionDataTest {
 
     @TempDir
     Path temp;
-
-    private boolean originalShadowPaging;
     private CCNBTUtils.TagCompression originalCompression;
 
     @BeforeEach
     void rememberStorageConfig() {
-        originalShadowPaging = CubicChunksConfig.useShadowPagingIO;
         originalCompression = CubicChunksConfig.chunkCompression;
     }
 
     @AfterEach
     void restoreStorageConfig() {
-        CubicChunksConfig.useShadowPagingIO = originalShadowPaging;
         CubicChunksConfig.chunkCompression = originalCompression;
     }
 
     @Test
     void oversizedCubeFallsBackWithoutLosingBatchNeighbors() throws Exception {
-        CubicChunksConfig.useShadowPagingIO = true;
         CubicChunksConfig.chunkCompression = CCNBTUtils.TagCompression.LZ4;
         CubePos largePos = new CubePos(0, 0, 0), smallPos = new CubePos(1, 0, 0);
         NBTTagCompound large = new NBTTagCompound(), small = new NBTTagCompound();
@@ -70,8 +65,6 @@ public class ConversionDataTest {
         try (RegionCubeStorage storage = new RegionCubeStorage(temp)) {
             assertEquals(large, storage.readCube(largePos));
             assertEquals(small, storage.readCube(smallPos));
-        } finally {
-            CubicChunksConfig.useShadowPagingIO = false;
         }
     }
 
@@ -146,7 +139,6 @@ public class ConversionDataTest {
 
     @Test
     void preservesRootTagsAndNonnegativeEntities() throws Exception {
-        CubicChunksConfig.useShadowPagingIO = false;
         CubicChunksConfig.chunkCompression = CCNBTUtils.TagCompression.GZIP;
         java.nio.file.Files.createDirectories(temp.resolve("region"));
         NBTTagCompound root = new NBTTagCompound();
@@ -178,7 +170,7 @@ public class ConversionDataTest {
         region.close();
         new VanillaToCCConverter(SectionAdapterDiscovery.eid(), BiomeAdapterDiscovery.eid())
             .convert(temp.toFile(), true, new ConversionProgress(), new AtomicBoolean());
-        try (RegionCubeStorage storage = new RegionCubeStorage(temp, true)) {
+        try (RegionCubeStorage storage = new RegionCubeStorage(temp)) {
             NBTTagCompound column = storage.readColumn(new ChunkCoordIntPair(0, 0));
             assertEquals("retained", column.getString("mod-root-data"));
             assertEquals(
